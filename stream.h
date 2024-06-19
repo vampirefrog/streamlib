@@ -33,7 +33,7 @@ int stream_read_compare(struct stream *stream, const void *data, int len);
 int stream_eof(struct stream *stream);
 long stream_tell(struct stream *stream);
 int stream_printf(struct stream *stream, const char *fmt, ...);
-void *stream_get_memory_access(struct stream *stream, size_t *length);
+void *stream_get_memory_access(struct stream *stream, size_t *length); /* For plain files, try mmap(), for memory streams, return the pointer to the data, and for zipped and gzipped files, allocate a buffer and read+uncompress the whole file in the buffer */
 int stream_revoke_memory_access(struct stream *stream);
 int stream_close(struct stream *stream);
 
