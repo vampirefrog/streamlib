@@ -53,7 +53,7 @@ int file_stream_destroy(struct file_stream *stream);
 
 struct file_type_filter {
 	const char *ext;
-	int (*file_cb)(const char *, struct stream *, void *); /* The stream * pointer is non null if the EF_OPEN_STREAM flag is set */
+	int (*file_cb)(const char *full_path, struct stream *stream, void *data_ptr); /* The stream * pointer is non null if the EF_OPEN_STREAM flag is set */
 	void *data_ptr;
 };
 
