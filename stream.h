@@ -50,3 +50,14 @@ struct file_stream {
 };
 int file_stream_init(struct file_stream *stream, char *filename, const char *mode);
 int file_stream_destroy(struct file_stream *stream);
+
+struct file_type_filter {
+	const char *ext;
+	int (*file_cb)(const char *, struct stream *, void *); /* The stream * pointer is non null if the EF_OPEN_STREAM flag is set */
+	void *data_ptr;
+};
+
+#define EF_RECURSE_DIRS 0x01
+#define EF_RECURSE_ARCHIVES 0x02 /* Currently zip only */
+#define EF_OPEN_STREAM 0x04 /* Open the file and provide the instance */
+int each_file(const char *path, struct file_type_filter *filters, int flags);
