@@ -228,19 +228,45 @@ static long file_stream_tell(struct stream *stream) {
 }
 
 static int file_stream_vprintf(struct stream *stream, const char *fmt, va_list ap) {
-
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	return vprintf(file_stream->f, fmt, ap);
 }
 
-static void file_stream__get_memory_access(struct stream *stream, size_t *length) {
+static void file_stream_get_memory_access(struct stream *stream, size_t *length) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
 
+	int fd = fileno(file_stream->f);
+	if(fd == -1) {
+		stream->_errno = errno;
+		return 0;
+	}
+
+	// Get file size using fstat
+	struct stat st;
+	if(fstat(fd, &st) == -1) {
+		stream->_errno = errno;
+		return 0;
+	}
+	if(length) *length = st.st_size;
+
+	// Map file into memory using mmap
+	stream->mem_size = st.st_size;
+	stream->mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if(stream->mem == MAP_FAILED) {
+		stream->_errno = errno;
+		return 0;
+	}
+
+	return stream->mem;
 }
 
-static void file_stream__revoke_memory_access(struct stream *stream) {
-
+static void file_stream_revoke_memory_access(struct stream *stream) {
+	munmap(stream->mem, stream->mem_size);
 }
 
 static int file_stream_close(struct stream *stream) {
-
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	return fclose(file_stream->f);
 }
 
 int file_stream_init(struct file_stream *stream, char *filename, const char *mode) {
@@ -307,27 +333,26 @@ static int zip_file_stream_vprintf(struct stream *, const char *fmt, va_list ap)
 	return -1;
 }
 
-static void *zip_file_stream_get_memory_access(struct stream *, size_t *length) {
+static void *zip_file_stream_get_memory_access(struct stream *stream, size_t *length) {
 	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
-	zip_file_stream->mem = malloc(zip_file_stream->stat.size);
-	if(!zip_file_stream->mem) return 0;
+	stream->mem = malloc(zip_file_stream->stat.size);
+	if(!stream->mem) return 0;
 	int r = zip_fseek(zip_file_stream->f, 0, SEEK_SET);
 	if(r) {
-		free(zip_file_stream->mem);
+		free(stream->mem);
 		return 0;
 	}
-	r = zip_fread(zip_file_stream->f, zip_file_stream->mem, zip_file_stream->stat.size);
+	r = zip_fread(zip_file_stream->f, stream->mem, zip_file_stream->stat.size);
 	if(r < 0) {
-		free(zip_file_stream->mem);
+		free(stream->mem);
 		return 0;
 	}
 	if(length) *length = zip_file_stream->stat.size;
-	return zip_file_stream->mem;
+	return stream->mem;
 }
 
-static void zip_file_stream_revoke_memory_access(struct stream *) {
-	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
-	if(zip_file_stream->mem) free(zip_file_stream->mem);
+static void zip_file_stream_revoke_memory_access(struct stream *stream) {
+	if(stream->mem) free(stream->mem);
 }
 
 static int zip_file_stream_close(struct stream *stream) {

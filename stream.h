@@ -18,6 +18,8 @@
 struct stream {
 	size_t position; /**< Current position in the stream */
 	int _errno; /**< Error number */
+	void *mem; /**< pointer for get_memory_access() and revoke_memory_access() */
+	size_t mem_size;
 
 	size_t (*read)(struct stream *, void *ptr, size_t size); /**< Function pointer to read data from the stream */
 	size_t (*write)(struct stream *, void *ptr, size_t size); /**< Function pointer to write data to the stream */
@@ -225,7 +227,6 @@ struct zip_file_stream {
 	struct stream stream; /**< Base stream structure */
 	zip_file_t *f; /**< Zip file pointer */
 	zip_stat_t stat; /**< Zip file statistics */
-	void *mem; /**< Memory buffer for uncompressed data */
 };
 
 /**
