@@ -2,6 +2,39 @@
  * @file stream.h
  * @brief Header file for stream operations including memory streams, file streams, and zip file streams.
  */
+
+/**
+ * \mainpage StreamLib Documentation
+ *
+ * \section intro_sec Introduction
+ *
+ * StreamLib is a versatile C library designed for handling various types of streams.
+ * It provides functionality for reading from and writing to memory streams, file streams,
+ * and zip file streams. This library aims to simplify stream management and provide
+ * utility functions for common operations.
+ *
+ * \section features_sec Features
+ *
+ * - Support for memory streams, file streams, and zip file streams.
+ * - Reading, writing, seeking, and other stream operations.
+ * - Convenient functions for handling different stream types.
+ *
+ * \section usage_sec Usage
+ *
+ * To use StreamLib in your project, include the appropriate headers and link with the
+ * StreamLib library. Refer to the API documentation for detailed function references
+ * and examples.
+ *
+ * \section license_sec License
+ *
+ * StreamLib is licensed under the MIT License. See the LICENSE file for more details.
+ *
+ * \section github_sec GitHub Repository
+ *
+ * Visit the <a href="https://github.com/vampirefrog/streamlib">StreamLib GitHub repository</a>
+ * for more information, contributions, and issues.
+ */
+
 #pragma once
 
 #include <stdint.h>
