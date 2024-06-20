@@ -108,16 +108,27 @@ static size_t mem_stream_read(struct stream *stream, void *ptr, size_t size) {
 	return read_len;
 }
 
+static int mem_stream_reserve(struct mem_stream *stream, int len) {
+	if(stream->data_len + len > stream->allocated_len) {
+		stream->allocated_len = (stream->data_len + len + 1023) & ~0x3ff;
+		stream->data = realloc(stream->data, stream->allocated_len);
+		if(!stream->data)
+			return -1;
+	}
+
+	return 0;
+}
+
 static size_t mem_stream_write(struct stream *stream, void *ptr, size_t size) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
-	if(mem_stream->buffer->data_len < stream->position + size) {
-		int err = buffer_reserve(mem_stream->buffer, stream->position + size - mem_stream->buffer->data_len);
-		stream->_errno = errno;
+	if(mem_stream->position + size > mem_stream->data_len) {
+		int err = mem_stream_reserve(mem_stream, mem_stream->position + size - mem_stream->data_len);
+		stream->_errno = err;
 		if(err) return 0;
-		mem_stream->buffer->data_len += stream->position + size - mem_stream->buffer->data_len;
+		mem_stream->data_len = mem_stream->position + size;
 	}
-	memcpy(mem_stream->buffer->data + stream->position, ptr, size);
-	stream->position += size;
+	memcpy(mem_stream->data + mem_stream->position, ptr, size);
+	mem_stream->position += size;
 	stream->_errno = errno;
 	return size;
 }
@@ -141,11 +152,17 @@ static long mem_stream_tell(struct stream *stream) {
 
 static int mem_vprintf(struct stream *stream, const char *fmt, va_list ap) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
-	int l = vsnprintf(0, 0, fmt, ap);
-	char *cur_end = mem_stream->data + mem_stream->position;
-	int g = mem_stream_grow(mem_stream, l);
-	if(g) return g;
-	// UNFINISHED
+	int size = vsnprintf(0, 0, fmt, ap);
+	if(mem_stream->position + size > mem_stream->data_len) {
+		int err = mem_stream_reserve(mem_stream, mem_stream->position + size - mem_stream->data_len);
+		stream->_errno = err;
+		if(err) return 0;
+		mem_stream->data_len = mem_stream->position + size;
+	}
+	vsprintf(mem_stream->data + mem_stream->position, fmt, ap);
+	mem_stream->position += size;
+	stream->_errno = errno;
+	return size;
 }
 
 static void mem_get_memory_access(struct stream *stream, size_t *length) {
