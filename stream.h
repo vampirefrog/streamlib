@@ -61,7 +61,7 @@ struct stream {
 	long (*tell)(struct stream *); /**< Function pointer to tell the current position in the stream */
 	int (*vprintf)(struct stream *, const char *fmt, va_list ap); /**< Function pointer to formatted print to the stream */
 	void *(*get_memory_access)(struct stream *, size_t *length); /**< Function pointer to get memory access */
-	void (*revoke_memory_access)(struct stream *); /**< Function pointer to revoke memory access */
+	int (*revoke_memory_access)(struct stream *); /**< Function pointer to revoke memory access */
 	int (*close)(struct stream *); /**< Function pointer to close the stream */
 };
 
@@ -196,7 +196,7 @@ ssize_t stream_write_big_uint32(struct stream *stream, uint32_t i);
  * @param len Length of the data to compare.
  * @return Result of the comparison.
  */
-int stream_read_compare(struct stream *stream, const void *data, int len);
+int stream_read_compare(struct stream *stream, const void *data, size_t len);
 
 /**
  * @struct mem_stream
@@ -205,9 +205,9 @@ int stream_read_compare(struct stream *stream, const void *data, int len);
 struct mem_stream {
 	struct stream stream; /**< Base stream structure */
 	void *data; /**< Pointer to the data buffer */
-	int data_len; /**< Length of the data */
-	int allocated_len; /**< Allocated length of the data buffer, -1 if using user buffer */
-	int position; /**< Current position in the stream */
+	size_t data_len; /**< Length of the data */
+	ssize_t allocated_len; /**< Allocated length of the data buffer, -1 if using user buffer */
+	long position; /**< Current position in the stream */
 };
 
 /**
@@ -217,13 +217,13 @@ struct mem_stream {
  * @param data_len Length of the data.
  * @return Status code.
  */
-int mem_stream_init(struct mem_stream *stream, void *existing_data, int data_len);
+int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_len);
 
 /**
  * @brief Create a memory stream.
  * @return Pointer to the created memory stream object.
  */
-struct stream *mem_stream_create();
+struct stream *mem_stream_new(void *existing_data, size_t existing_data_len);
 
 /**
  * @struct file_stream
@@ -241,7 +241,7 @@ struct file_stream {
  * @param mode Mode in which to open the file.
  * @return Status code.
  */
-int file_stream_init(struct file_stream *stream, char *filename, const char *mode);
+int file_stream_init(struct file_stream *stream, const char *filename, const char *mode);
 
 /**
  * @brief Create a file stream.
@@ -249,7 +249,7 @@ int file_stream_init(struct file_stream *stream, char *filename, const char *mod
  * @param mode Mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
-struct stream *file_stream_create(char *filename, const char *mode);
+struct stream *file_stream_new(const char *filename, const char *mode);
 
 #ifdef HAVE_LIBZIP
 /**
@@ -302,7 +302,7 @@ struct file_type_filter {
 /**
  * @brief Process each file in the specified path according to the filters and flags.
  * @param path Path to process.
- * @param filters Pointer to the array of file type filters.
+ * @param filters Null terminated list of extensions to process.
  * @param flags Flags to control the processing.
  * @return Status code.
  */
