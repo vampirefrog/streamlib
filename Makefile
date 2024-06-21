@@ -3,9 +3,9 @@ AR=ar
 RM=rm
 CFLAGS=-Wall -Wextra -Werror -O2
 
-#ifdef HAVE_LIBZIP
+ifdef HAVE_LIBZIP
 CFLAGS+=-DHAVE_LIBZIP
-#endif
+endif
 
 .PHONY: all clean
 
