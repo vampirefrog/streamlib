@@ -8,12 +8,18 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: make
-      run: make
+      run: make HAVE_LIBZIP=1
     - name: make tests
-      run: make tests
+      run: make HAVE_LIBZIP=1 tests
+  build-win64:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: make
+      run: make HAVE_LIBZIP=1
+    - name: make tests
+      run: make HAVE_LIBZIP=1 tests
