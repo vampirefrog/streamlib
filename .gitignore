@@ -1,6 +1,7 @@
 *.sublime-workspace
 *.o
 *.a
+*.exe
 tests/stream
 tests/each_file
 tests/test.txt

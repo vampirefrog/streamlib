@@ -274,16 +274,7 @@ static int file_stream_vprintf(struct stream *stream, const char *fmt, va_list a
 
 static void *file_stream_get_memory_access(struct stream *stream, size_t *length) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-#ifdef WIN32
-	HANDLE fileMapping = CreateFileMapping(fileno(stream->f), NULL, PAGE_READONLY, 0, 0, NULL);
-	if(!fileMapping) return 0;
 
-	void *mappedView = MapViewOfFile(fileMapping, FILE_MAP_READ, (DWORD)(offset >> 32), (DWORD)(offset & 0xFFFFFFFF), length);
-
-	CloseHandle(fileMapping);
-
-	return mappedView;
-#else
 	int fd = fileno(file_stream->f);
 	if(fd == -1) {
 		stream->_errno = errno;
@@ -298,6 +289,16 @@ static void *file_stream_get_memory_access(struct stream *stream, size_t *length
 	}
 	if(length) *length = st.st_size;
 
+#ifdef WIN32
+	HANDLE fileMapping = CreateFileMapping((HANDLE)_get_osfhandle(fd), NULL, PAGE_READONLY, 0, 0, NULL);
+	if(!fileMapping) return 0;
+
+	stream->mem = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, st.st_size);
+
+	CloseHandle(fileMapping);
+
+	return stream->mem;
+#else
 	// Map file into memory using mmap
 	stream->mem_size = st.st_size;
 	stream->mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -312,7 +313,7 @@ static void *file_stream_get_memory_access(struct stream *stream, size_t *length
 
 static int file_stream_revoke_memory_access(struct stream *stream) {
 #ifdef WIN32
-	return UnmapViewOfFile(address) ? 0 : -1;
+	return UnmapViewOfFile(stream->mem) ? 0 : -1;
 #else
 	return munmap(stream->mem, stream->mem_size);
 #endif
@@ -388,7 +389,7 @@ static size_t zip_file_stream_read(struct stream *stream, void *ptr, size_t size
 	return r;
 }
 
-static size_t zip_file_stream_write(struct stream *stream, void *ptr, size_t size) {
+static size_t zip_file_stream_write(struct stream *stream, const void *ptr, size_t size) {
 	(void)stream;
 	(void)ptr;
 	(void)size;
@@ -404,9 +405,9 @@ static size_t zip_file_stream_seek(struct stream *stream, long offset, int whenc
 
 static int zip_file_stream_eof(struct stream *stream) {
 	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
-	size_t t = zip_ftell(zip_file_stream->f);
+	zip_int64_t t = zip_ftell(zip_file_stream->f);
 	if(t < 0) return t;
-	return t == zip_file_stream->stat.size;
+	return t == (zip_int64_t)zip_file_stream->stat.size;
 }
 
 static long zip_file_stream_tell(struct stream *stream) {
