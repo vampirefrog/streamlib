@@ -22,4 +22,4 @@ tests: libstream.a
 	cd tests && $(CC) stream.c ../libstream.a -o stream && ./stream
 
 clean:
-	$(RM) -f libstream.a *.o
+	$(RM) -f libstream.a *.o tests/*.exe tests/each_file tests/stream
