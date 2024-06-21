@@ -14,7 +14,10 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-/* Wrapper functions */
+void stream_init(struct stream *stream) {
+	memset(stream, 0, sizeof(*stream));
+}
+
 size_t stream_read(struct stream *stream, void *ptr, size_t size) {
 	return stream->read(stream, ptr, size);
 }
@@ -192,10 +195,15 @@ static int mem_stream_close(struct stream *stream) {
 }
 
 int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t existing_data_len) {
+	stream_init(&stream->stream);
+
 	if(existing_data) {
 		stream->data = existing_data;
 		stream->allocated_len = -1;
 		stream->data_len = existing_data_len;
+	} else {
+		stream->position = stream->data_len = stream->allocated_len = 0;
+		stream->data = 0;
 	}
 	stream->stream.write = mem_stream_write;
 	stream->stream.read = mem_stream_read;
@@ -311,6 +319,8 @@ static int file_stream_init_callbacks(struct stream *stream) {
 }
 
 int file_stream_init(struct file_stream *stream, const char *filename, const char *mode) {
+	stream_init(&stream->stream);
+
 	stream->f = fopen(filename, mode);
 	stream->stream._errno = errno;
 	if(!stream->f) return -1;
@@ -424,6 +434,8 @@ static int zip_file_stream_close(struct stream *stream) {
 }
 
 int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index)  {
+	stream_init(&stream->stream);
+
 	int r = zip_stat_index(zip, index, ZIP_STAT_SIZE, &stream->stat);
 	stream->stream._errno = zip_error_code_system(zip_get_error(zip));
 	if(r) return r;

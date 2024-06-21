@@ -64,6 +64,8 @@ struct stream {
 	int (*close)(struct stream *); /**< Function pointer to close the stream */
 };
 
+void stream_init(struct stream *stream);
+
 /**
  * @brief Read data from the stream.
  * @param stream Pointer to the stream object.
