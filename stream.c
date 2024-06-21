@@ -5,12 +5,13 @@
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #ifdef HAVE_LIBZIP
 #include <zip.h>
 #endif
 #ifdef WIN32
 #include <windows.h>
+#else
+#include <sys/mman.h>
 #endif
 #include "stream.h"
 
