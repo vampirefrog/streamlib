@@ -51,8 +51,8 @@
 struct stream {
 	size_t position; /**< Current position in the stream */
 	int _errno; /**< Error number */
-	void *mem; /**< pointer for get_memory_access() and revoke_memory_access() */
-	size_t mem_size;
+	void *mem; /**< Pointer for memory access functions */
+	size_t mem_size; /**< Size of the memory buffer */
 
 	size_t (*read)(struct stream *, void *ptr, size_t size); /**< Function pointer to read data from the stream */
 	size_t (*write)(struct stream *, void *ptr, size_t size); /**< Function pointer to write data to the stream */
@@ -221,6 +221,8 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_
 
 /**
  * @brief Create a memory stream.
+ * @param existing_data Pointer to the existing data buffer. If NULL, data_len bytes are allocated.
+ * @param existing_data_len Length of the data.
  * @return Pointer to the created memory stream object.
  */
 struct stream *mem_stream_new(void *existing_data, size_t existing_data_len);
@@ -242,18 +244,38 @@ struct file_stream {
  * @return Status code.
  */
 int file_stream_init(struct file_stream *stream, const char *filename, const char *mode);
+
 #ifdef WIN32
+/**
+ * @brief Initialize a file stream with wide-character filename.
+ * @param stream Pointer to the file stream object.
+ * @param filename Wide-character name of the file to open.
+ * @param mode Wide-character mode in which to open the file.
+ * @return Status code.
+ */
 int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode);
 #endif
 
 /**
  * @brief Create a file stream.
  * @param filename Name of the file to open.
+ * @param modeHere is the continuation and completion of the Doxygen comments for `stream.h`:
+
+```c
  * @param mode Mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
 struct stream *file_stream_new(const char *filename, const char *mode);
+
+#ifdef WIN32
+/**
+ * @brief Create a file stream with wide-character filename.
+ * @param filename Wide-character name of the file to open.
+ * @param mode Wide-character mode in which to open the file.
+ * @return Pointer to the created file stream object.
+ */
 struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode);
+#endif
 
 #ifdef HAVE_LIBZIP
 /**
@@ -296,9 +318,7 @@ struct file_type_filter {
 
 #define EF_RECURSE_DIRS 0x01 /**< Flag to recurse directories */
 #ifdef HAVE_LIBZIP
-#define EF_RECURSE_ARCHIVES 0x02 /**< Flag to recurse archives (zip only)
-
- */
+#define EF_RECURSE_ARCHIVES 0x02 /**< Flag to recurse archives (currently zip only) */
 #endif
 #define EF_OPEN_STREAM 0x04 /**< Flag to open the file and provide the stream instance */
 #define EF_CREATE_WRITABLE_ZIP_DIRS 0x08 /**< Flag to create a writable directory with the basename of the zip file before calling callback */
