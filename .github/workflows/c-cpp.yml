@@ -24,7 +24,7 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: mingw-w64-libzip
+        install: mingw-w64-x86_64-libzip
     - name: make
       run: make HAVE_LIBZIP=1
     - name: make tests
