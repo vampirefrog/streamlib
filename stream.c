@@ -296,25 +296,38 @@ static int file_stream_close(struct stream *stream) {
 	return fclose(file_stream->f);
 }
 
+static int file_stream_init_callbacks(struct stream *stream) {
+	stream->read = file_stream_read;
+	stream->write = file_stream_write;
+	stream->seek = file_stream_seek;
+	stream->eof = file_stream_eof;
+	stream->tell = file_stream_tell;
+	stream->vprintf = file_stream_vprintf;
+	stream->get_memory_access = file_stream_get_memory_access;
+	stream->revoke_memory_access = file_stream_revoke_memory_access;
+	stream->close = file_stream_close;
+	return 0;
+}
+
 int file_stream_init(struct file_stream *stream, const char *filename, const char *mode) {
 	stream->f = fopen(filename, mode);
 	stream->stream._errno = errno;
 	if(!stream->f) return -1;
 
-	stream->stream.read = file_stream_read;
-	stream->stream.write = file_stream_write;
-	stream->stream.seek = file_stream_seek;
-	stream->stream.eof = file_stream_eof;
-	stream->stream.tell = file_stream_tell;
-	stream->stream.vprintf = file_stream_vprintf;
-	stream->stream.get_memory_access = file_stream_get_memory_access;
-	stream->stream.revoke_memory_access = file_stream_revoke_memory_access;
-	stream->stream.close = file_stream_close;
-
-	return 0;
+	return file_stream_init_callbacks(&stream->stream);
 }
 
-struct stream *file_stream_create(char *filename, const char *mode) {
+#ifdef WIN32
+int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode) {
+	stream->f = _wfopen(filename, mode);
+	stream->stream._errno = errno;
+	if(!stream->f) return -1;
+
+	return file_stream_init_callbacks(&stream->stream);
+}
+#endif
+
+struct stream *file_stream_new(const char *filename, const char *mode) {
 	struct file_stream *s = malloc(sizeof(struct file_stream));
 	if(!s) return 0;
 	int r = file_stream_init(s, filename, mode);
@@ -324,6 +337,19 @@ struct stream *file_stream_create(char *filename, const char *mode) {
 	}
 	return &s->stream;
 }
+
+#ifdef WIN32
+struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode) {
+	struct file_stream *s = malloc(sizeof(struct file_stream));
+	if(!s) return 0;
+	int r = file_stream_initw(s, filename, mode);
+	if(r) {
+		free(s);
+		return 0;
+	}
+	return &s->stream;
+}
+#endif
 
 #ifdef HAVE_LIBZIP
 static size_t zip_file_stream_read(struct stream *stream, void *ptr, size_t size) {

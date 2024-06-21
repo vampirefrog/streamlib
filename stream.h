@@ -242,6 +242,9 @@ struct file_stream {
  * @return Status code.
  */
 int file_stream_init(struct file_stream *stream, const char *filename, const char *mode);
+#ifdef WIN32
+int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode);
+#endif
 
 /**
  * @brief Create a file stream.
@@ -250,6 +253,7 @@ int file_stream_init(struct file_stream *stream, const char *filename, const cha
  * @return Pointer to the created file stream object.
  */
 struct stream *file_stream_new(const char *filename, const char *mode);
+struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode);
 
 #ifdef HAVE_LIBZIP
 /**
