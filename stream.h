@@ -49,13 +49,12 @@
  * @brief Generic stream structure to handle various stream operations.
  */
 struct stream {
-	size_t position; /**< Current position in the stream */
 	int _errno; /**< Error number */
 	void *mem; /**< Pointer for memory access functions */
 	size_t mem_size; /**< Size of the memory buffer */
 
 	size_t (*read)(struct stream *, void *ptr, size_t size); /**< Function pointer to read data from the stream */
-	size_t (*write)(struct stream *, void *ptr, size_t size); /**< Function pointer to write data to the stream */
+	size_t (*write)(struct stream *, const void *ptr, size_t size); /**< Function pointer to write data to the stream */
 	size_t (*seek)(struct stream *, long offset, int whence); /**< Function pointer to seek within the stream */
 	int (*eof)(struct stream *); /**< Function pointer to check for end-of-file in the stream */
 	long (*tell)(struct stream *); /**< Function pointer to tell the current position in the stream */
@@ -81,7 +80,7 @@ size_t stream_read(struct stream *, void *ptr, size_t size);
  * @param size Number of bytes to write.
  * @return Number of bytes written.
  */
-ssize_t stream_write(struct stream *stream, void *ptr, size_t size);
+ssize_t stream_write(struct stream *stream, const void *ptr, size_t size);
 
 /**
  * @brief Seek to a specific position in the stream.
@@ -207,7 +206,7 @@ struct mem_stream {
 	void *data; /**< Pointer to the data buffer */
 	size_t data_len; /**< Length of the data */
 	ssize_t allocated_len; /**< Allocated length of the data buffer, -1 if using user buffer */
-	long position; /**< Current position in the stream */
+	size_t position; /**< Current position in the stream */
 };
 
 /**
@@ -260,8 +259,6 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
  * @brief Create a file stream.
  * @param filename Name of the file to open.
  * @param modeHere is the continuation and completion of the Doxygen comments for `stream.h`:
-
-```c
  * @param mode Mode in which to open the file.
  * @return Pointer to the created file stream object.
  */

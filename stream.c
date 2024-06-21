@@ -19,7 +19,7 @@ size_t stream_read(struct stream *stream, void *ptr, size_t size) {
 	return stream->read(stream, ptr, size);
 }
 
-ssize_t stream_write(struct stream *stream, void *ptr, size_t size) {
+ssize_t stream_write(struct stream *stream, const void *ptr, size_t size) {
 	return stream->write(stream, ptr, size);
 }
 
@@ -121,7 +121,7 @@ static int mem_stream_reserve(struct mem_stream *stream, size_t len) {
 	return 0;
 }
 
-static size_t mem_stream_write(struct stream *stream, void *ptr, size_t size) {
+static size_t mem_stream_write(struct stream *stream, const void *ptr, size_t size) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
 	if(mem_stream->position + size > mem_stream->data_len) {
 		int err = mem_stream_reserve(mem_stream, mem_stream->position + size - mem_stream->data_len);
@@ -138,29 +138,30 @@ static size_t mem_stream_write(struct stream *stream, void *ptr, size_t size) {
 static size_t mem_stream_seek(struct stream *stream, long offset, int whence) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
 	if(whence == SEEK_SET) {
-		stream->position = MIN(offset, (long)mem_stream->data_len);
+		mem_stream->position = MIN(offset, (long)mem_stream->data_len);
 	} else if(whence == SEEK_CUR) {
-		stream->position = MIN(mem_stream->position + offset, (long)mem_stream->data_len);
+		mem_stream->position = MIN(mem_stream->position + offset, mem_stream->data_len);
 	} else if(whence == SEEK_END) {
-		stream->position = MIN(mem_stream->data_len + offset, mem_stream->data_len);
+		mem_stream->position = MIN(mem_stream->data_len + offset, mem_stream->data_len);
 	}
 	stream->_errno = 0;
-	return stream->position;
+	return mem_stream->position;
 }
 
 static int mem_stream_eof(struct stream *stream) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
-	return stream->position >= mem_stream->data_len ? 1 : 0;
+	return mem_stream->position >= mem_stream->data_len ? 1 : 0;
 }
 
 static long mem_stream_tell(struct stream *stream) {
-	return stream->position;
+	struct mem_stream *mem_stream = (struct mem_stream *)stream;
+	return mem_stream->position;
 }
 
 static int mem_stream_vprintf(struct stream *stream, const char *fmt, va_list ap) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
 	long size = vsnprintf(0, 0, fmt, ap);
-	if(mem_stream->position + size > (long)mem_stream->data_len) {
+	if(mem_stream->position + size > mem_stream->data_len) {
 		int err = mem_stream_reserve(mem_stream, mem_stream->position + size - mem_stream->data_len);
 		stream->_errno = err;
 		if(err) return 0;
@@ -226,7 +227,7 @@ static size_t file_stream_read(struct stream *stream, void *ptr, size_t size) {
 	return r;
 }
 
-static size_t file_stream_write(struct stream *stream, void *ptr, size_t size) {
+static size_t file_stream_write(struct stream *stream, const void *ptr, size_t size) {
 	struct file_stream *write_stream = (struct file_stream *)stream;
 	size_t r = fwrite(ptr, 1, size, write_stream->f);
 	stream->_errno = errno;
@@ -458,24 +459,20 @@ struct stream *zip_file_stream_create_index(zip_t *zip, int index) {
 
 static int each_file_dir(const char *path, struct file_type_filter *filters, int flags) {
 	DIR *d = opendir(path);
-	if(!d) {
-		fprintf(stderr, "Could not opendir %s: %s (%d)\n", path, strerror(errno), errno);
-		return errno;
-	}
+	if(!d) return errno;
 	struct dirent *de;
 	while((de = readdir(d))) {
-		if(de->d_type != DT_DIR) continue;
 		if(de->d_name[0] == '.' && de->d_name[1] == 0) continue;
 		if(de->d_name[0] == '.' && de->d_name[1] == '.' && de->d_name[2] == 0) continue;
 		char rpath[PATH_MAX]; // FIXME: maybe allocate new string instead?
-		snprintf(rpath, sizeof(rpath), "%s/%s", path, de->d_name);
+		if(path[0])
+			snprintf(rpath, sizeof(rpath), "%s/%s", path, de->d_name);
+		else
+			snprintf(rpath, sizeof(rpath), "%s", de->d_name);
 		each_file(rpath, filters, flags);
 	}
-	if(closedir(d)) {
-		fprintf(stderr, "Could not closedir %s: %s (%d)\n", path, strerror(errno), errno);
-		return errno;
-	}
-	return 0;
+	if(closedir(d)) return errno;
+		return 0;
 }
 
 #ifdef HAVE_LIBZIP
@@ -524,8 +521,6 @@ static int each_file_zip(const char *path, struct file_type_filter *filters, int
 #endif
 
 static int each_file_file(const char *path, const char *ext, struct file_type_filter *filters, int flags) {
-	if(!ext[1]) return -1;
-	ext++;
 	for(struct file_type_filter *f = filters; f->ext; f++) {
 		if(strcasecmp(ext, f->ext)) continue;
 		if(flags & EF_OPEN_STREAM) {
@@ -546,10 +541,7 @@ static int each_file_file(const char *path, const char *ext, struct file_type_fi
 int each_file(const char *path, struct file_type_filter *filters, int flags) {
 	struct stat st;
 	int r = stat(path, &st);
-	if(r < 0) {
-		fprintf(stderr, "Could not stat %s: %s (%d)\n", path, strerror(errno), errno);
-		return errno;
-	}
+	if(r < 0) return errno;
 	if(S_ISDIR(st.st_mode) && (flags & EF_RECURSE_DIRS)) {
 		return each_file_dir(path, filters, flags);
 	} else {
