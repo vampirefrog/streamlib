@@ -10,6 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Install xmllint
+      run: sudo apt-get install -y libzip-dev
     - uses: actions/checkout@v4
     - name: make
       run: make HAVE_LIBZIP=1
