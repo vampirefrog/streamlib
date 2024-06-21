@@ -1,4 +1,4 @@
-CC=clang
+CC=gcc
 AR=ar
 RM=rm
 CFLAGS=-Wall -Wextra -Werror -O2
