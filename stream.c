@@ -9,6 +9,9 @@
 #ifdef HAVE_LIBZIP
 #include <zip.h>
 #endif
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "stream.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -270,7 +273,16 @@ static int file_stream_vprintf(struct stream *stream, const char *fmt, va_list a
 
 static void *file_stream_get_memory_access(struct stream *stream, size_t *length) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
+#ifdef WIN32
+	HANDLE fileMapping = CreateFileMapping(fileno(stream->f), NULL, PAGE_READONLY, 0, 0, NULL);
+	if(!fileMapping) return 0;
 
+	void *mappedView = MapViewOfFile(fileMapping, FILE_MAP_READ, (DWORD)(offset >> 32), (DWORD)(offset & 0xFFFFFFFF), length);
+
+	CloseHandle(fileMapping);
+
+	return mappedView;
+#else
 	int fd = fileno(file_stream->f);
 	if(fd == -1) {
 		stream->_errno = errno;
@@ -294,10 +306,15 @@ static void *file_stream_get_memory_access(struct stream *stream, size_t *length
 	}
 
 	return stream->mem;
+#endif
 }
 
 static int file_stream_revoke_memory_access(struct stream *stream) {
+#ifdef WIN32
+	return UnmapViewOfFile(address) ? 0 : -1;
+#else
 	return munmap(stream->mem, stream->mem_size);
+#endif
 }
 
 static int file_stream_close(struct stream *stream) {
