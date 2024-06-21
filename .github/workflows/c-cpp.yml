@@ -21,10 +21,15 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: msys2/setup-msys2@v2
+    - name: Set up MSYS2
+      uses: msys2/setup-msys2@v2
       with:
-        update: true
-        install: mingw-w64-x86_64-libzip
+        install: >-
+          base-devel
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-libzip
+    - name: Add MSYS2 to PATH
+      run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
     - name: make
       run: make CC=x86_64-w64-mingw32-gcc HAVE_LIBZIP=1
     - name: make tests
