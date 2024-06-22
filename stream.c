@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
@@ -10,6 +11,7 @@
 #endif
 #ifdef WIN32
 #include <windows.h>
+#include <fcntl.h>
 #else
 #include <sys/mman.h>
 #endif
@@ -507,19 +509,24 @@ static int each_file_dir(const char *path, struct file_type_filter *filters, int
 }
 
 #ifdef WIN32
-static int each_file_dirw(const wchar_t *path, struct file_type_filter *filters, int flags) {
-	WIN32_FIND_DATA fdata;
-	HANDLE h = FindFirstFile(path, &fdata);
+static int each_file_dirw(const wchar_t *path, struct file_type_filterw *filters, int flags) {
+	WIN32_FIND_DATAW fdata;
+	HANDLE h = FindFirstFileW(path, &fdata);
 	if(h == INVALID_HANDLE_VALUE) return -1;
 	do {
 		wchar_t rpath[MAX_PATH];
 		if(path[0])
-			swprintf(file_path, MAX_PATH, L"%s\\%s", path, fdata.cFileName);
+			swprintf(rpath, MAX_PATH, L"%s\\%s", path, fdata.cFileName);
 		else
-			swprintf(file_path, MAX_PATH, L"%s", fdata.cFileName);
-		each_filew(rpath, filters, flags);
-	} while (FindNextFile(h, &fdata) != 0);
+			swprintf(rpath, MAX_PATH, L"%s", fdata.cFileName);
+		int r = each_filew(rpath, filters, flags);
+		if(r) {
+			FindClose(h);
+			return r;
+		}
+	} while (FindNextFileW(h, &fdata) != 0);
 	FindClose(h);
+	return 0;
 }
 #endif
 
@@ -540,11 +547,11 @@ static int each_file_dirw(const wchar_t *path, struct file_type_filter *filters,
 #define FILL_PATH_INFOW(path) \
 	p.file_name = (wchar_t *)path; \
 	wchar_t *file_dirname_str = _wcsdup(path); \
-	p.file_dirname = dirname(file_dirname_str); \
+	p.file_dirname = _wdirname(file_dirname_str); \
 	wchar_t *file_basename_str = _wcsdup(path); \
-	p.file_basename = basename(file_basename_str); \
+	p.file_basename = _wbasename(file_basename_str); \
 	wchar_t *file_ext_str = _wcsdup(p.file_basename); \
-	wchar_t *file_ext = strrchr(file_ext_str, '.'); \
+	wchar_t *file_ext = wcsrchr(file_ext_str, '.'); \
 	if(file_ext) { \
 		*file_ext = 0; \
 		p.file_ext = file_ext[1] ? file_ext + 1 : 0; \
@@ -621,7 +628,7 @@ wchar_t* _wdirname(wchar_t* path) {
 
 static int each_file_zipw(const wchar_t *path, struct file_type_filterw *filters, int flags) {
 	(void)flags;
-	int fd = _wfopen(path, L"rb");
+	int fd = _wopen(path, _O_RDONLY | _O_BINARY);
 	if(!fd) return errno;
 	int err;
 	zip_t *z = zip_fdopen(fd, 0, &err);
@@ -643,19 +650,19 @@ static int each_file_zipw(const wchar_t *path, struct file_type_filterw *filters
 	for(int j = 0; j < num_entries; j++) {
 		zip_stat_t st;
 		zip_stat_index(z, j, ZIP_STAT_NAME | ZIP_STAT_SIZE, &st);
-		int l = strlen(st.name)
-		wchar_t *stname = malloc((l + 1) * sizeof(wchar_t));
-		if(!stname) return -1;
+		int l = strlen(st.name);
+		wchar_t stname[MAX_PATH];
+		if(l >= MAX_PATH) l = MAX_PATH-1;
 		for(int k = 0; k < l; k++)
 			stname[k] = st.name[k];
-		const wchar_t *ext = wcsrchr(st.name, L'.');
+		const wchar_t *ext = wcsrchr(stname, L'.');
 		if(!ext || !ext[1]) continue;
 		for(struct file_type_filterw *f = filters; f->ext; f++) {
 			if(_wcsicmp(ext, f->ext)) continue;
 			struct zip_file_stream s;
 			int r = zip_file_stream_init_index(&s, z, j);
 			if(r) return r;
-			FILL_PATH_INFOW(st.name);
+			FILL_PATH_INFOW(stname);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
 			FREE_PATH_INFO();
 			stream_close((struct stream *)&s);
@@ -704,7 +711,7 @@ static int each_file_filew(const wchar_t *path, const wchar_t *ext, struct file_
 		p.zip_file_name = p.zip_file_base = p.zip_file_dirname = 0;
 		if(flags & EF_OPEN_STREAM) {
 			struct file_stream s;
-			int r = file_stream_initw(&s, path, "rb");
+			int r = file_stream_initw(&s, path, L"rb");
 			if(r) return r;
 			FILL_PATH_INFOW(path);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
