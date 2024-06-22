@@ -26,7 +26,6 @@ jobs:
       with:
         msystem: mingw64
         install: >-
-          mingw64/base-devel
           mingw64/mingw-w64-x86_64-toolchain
           mingw64/mingw-w64-x86_64-libzip
     - name: make
