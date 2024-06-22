@@ -7,34 +7,25 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Install libzip
+  #     run: sudo apt-get install -y libzip-dev
+  #   - uses: actions/checkout@v4
+  #   - name: make
+  #     run: make HAVE_LIBZIP=1
+  #   - name: make tests
+  #     run: make HAVE_LIBZIP=1 tests
+  build-win64:
+    runs-on: windows-latest
     steps:
-    - name: Install xmllint
-      run: sudo apt-get install -y libzip-dev
     - uses: actions/checkout@v4
+      - name: get gcc path
+        run: which gcc
+    - name: install libzip
+      run: pacman -S libzip
     - name: make
       run: make HAVE_LIBZIP=1
     - name: make tests
       run: make HAVE_LIBZIP=1 tests
-  build-win64:
-    runs-on: windows-latest
-    steps:
-      - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
-      - name: get gcc path
-        run: which gcc
-    # - uses: actions/checkout@v4
-    # - name: Set up MSYS2
-    #   uses: msys2/setup-msys2@v2
-    #   with:
-    #     msystem: mingw64
-    #     install: >-
-    #       mingw64/mingw-w64-x86_64-toolchain
-    #       mingw64/mingw-w64-x86_64-libzip
-    # - name: make
-    #   run: make HAVE_LIBZIP=1
-    # - name: make tests
-    #   run: make HAVE_LIBZIP=1 tests
