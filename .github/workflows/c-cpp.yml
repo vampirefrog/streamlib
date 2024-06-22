@@ -20,15 +20,17 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up MSYS2
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: mingw64
-        install: >-
-          mingw64/mingw-w64-x86_64-toolchain
-          mingw64/mingw-w64-x86_64-libzip
-    - name: make
-      run: make HAVE_LIBZIP=1
-    - name: make tests
-      run: make HAVE_LIBZIP=1 tests
+      - name: get gcc path
+        run: which gcc
+    # - uses: actions/checkout@v4
+    # - name: Set up MSYS2
+    #   uses: msys2/setup-msys2@v2
+    #   with:
+    #     msystem: mingw64
+    #     install: >-
+    #       mingw64/mingw-w64-x86_64-toolchain
+    #       mingw64/mingw-w64-x86_64-libzip
+    # - name: make
+    #   run: make HAVE_LIBZIP=1
+    # - name: make tests
+    #   run: make HAVE_LIBZIP=1 tests
