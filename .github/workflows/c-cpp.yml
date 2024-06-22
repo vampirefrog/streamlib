@@ -7,25 +7,19 @@ on:
     branches: [ "master" ]
 
 jobs:
-  # build:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Install libzip
-  #     run: sudo apt-get install -y libzip-dev
-  #   - uses: actions/checkout@v4
-  #   - name: make
-  #     run: make HAVE_LIBZIP=1
-  #   - name: make tests
-  #     run: make HAVE_LIBZIP=1 tests
-  build-win64:
+  msys2-ucrt64:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
-    - uses: actions/checkout@v4
-    - name: get gcc path
-      run: which gcc
-    - name: install libzip
-      run: pacman -S libzip
-    - name: make
-      run: make HAVE_LIBZIP=1
-    - name: make tests
-      run: make HAVE_LIBZIP=1 tests
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: git mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libzip
+      - name: CI-Build
+        run: |
+          echo 'Running in MSYS2!'
+          make HAVE_LIBZIP=1 clean tests
