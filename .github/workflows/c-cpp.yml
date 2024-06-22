@@ -7,7 +7,17 @@ on:
     branches: [ "master" ]
 
 jobs:
-  msys2-ucrt64:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install libzip
+      run: sudo apt-get install -y libzip-dev
+    - uses: actions/checkout@v4
+    - name: make
+      run: make HAVE_LIBZIP=1
+    - name: make tests
+      run: make HAVE_LIBZIP=1 tests
+  msys2-mingw64:
     runs-on: windows-latest
     defaults:
       run:
