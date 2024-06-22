@@ -20,6 +20,10 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
       - name: get gcc path
         run: which gcc
     # - uses: actions/checkout@v4
