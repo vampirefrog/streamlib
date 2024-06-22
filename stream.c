@@ -102,12 +102,10 @@ ssize_t stream_write_big_uint32(struct stream *stream, uint32_t i) {
 int stream_read_compare(struct stream *stream, const void *data, size_t len) {
 	if(!len) len = strlen((char *)data);
 	void *buf = malloc(len);
-	if(buf) {
-		int ret = !(stream_read(stream, buf, len) < len || memcmp(buf, data, len));
-		free(buf);
-		return ret;
-	}
-	return 0;
+	if(!buf) return 0;
+	int ret = !(stream_read(stream, buf, len) < len || memcmp(buf, data, len));
+	free(buf);
+	return ret;
 }
 
 static size_t mem_stream_read(struct stream *stream, void *ptr, size_t size) {
