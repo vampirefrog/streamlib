@@ -1,5 +1,7 @@
 # StreamLib
 
+![Build and tests](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml/badge.svg)
+
 StreamLib is a versatile C library designed to handle various types of streams, including memory streams, file streams, and zip file streams. The library provides a unified interface for stream operations, making it easier to manage different data sources in a consistent manner.
 
 ## Features
