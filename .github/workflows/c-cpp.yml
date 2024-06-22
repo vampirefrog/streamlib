@@ -18,7 +18,7 @@ jobs:
   #   - name: make tests
   #     run: make HAVE_LIBZIP=1 tests
   build-win64:
-    runs-on: windows-latest
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v4
     - name: get gcc path
