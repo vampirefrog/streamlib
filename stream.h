@@ -234,7 +234,7 @@ struct stream *mem_stream_new(void *existing_data, size_t existing_data_len);
  */
 struct file_stream {
 	struct stream stream; /**< Base stream structure */
-	FILE *f; /**< File pointer */
+	FILE *f;
 };
 
 /**
@@ -306,12 +306,33 @@ struct stream *zip_file_stream_create_index(zip_t *zip, int index);
 #endif
 
 /**
+ * @struct path_info
+ * @brief A set of paths which you receive for each file.
+ * When the zip_file_name is NULL, file_name refers to the real file on the
+ * filesystem.
+ * When it is not NULL, it refers to the file inside the zip file.
+ */
+struct path_info {
+#ifdef HAVE_LIBZIP
+	char *zip_file_name;    // foo/bar/baz.zip
+	char *zip_file_dirname; // foo/bar
+	char *zip_file_base;    // baz
+#endif
+
+	char *file_name;     // foo/bar/baz.txt
+	char *file_dirname;  // foo/bar
+	char *file_basename; // baz.txt
+	char *file_base;     // baz
+	char *file_ext;      // txt
+};
+
+/**
  * @struct file_type_filter
  * @brief Structure for filtering files based on their type.
  */
 struct file_type_filter {
 	const char *ext; /**< File extension to filter */
-	int (*file_cb)(const char *full_path, struct stream *stream, void *user_data); /**< Callback function for processing the file */
+	int (*file_cb)(struct path_info *path_info, struct stream *stream, void *user_data); /**< Callback function for processing the file */
 	void *user_data; /**< User data for the callback function */
 };
 
@@ -320,7 +341,6 @@ struct file_type_filter {
 #define EF_RECURSE_ARCHIVES 0x02 /**< Flag to recurse archives (currently zip only) */
 #endif
 #define EF_OPEN_STREAM 0x04 /**< Flag to open the file and provide the stream instance */
-#define EF_CREATE_WRITABLE_ZIP_DIRS 0x08 /**< Flag to create a writable directory with the basename of the zip file before calling callback */
 
 /**
  * @brief Process each file in the specified path according to the filters and flags.

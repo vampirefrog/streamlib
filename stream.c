@@ -506,8 +506,28 @@ static int each_file_dir(const char *path, struct file_type_filter *filters, int
 		return 0;
 }
 
+#define FILL_PATH_INFO(path) \
+	p.file_name = (char *)path; \
+	char *file_dirname_str = strdup(path); \
+	p.file_dirname = dirname(file_dirname_str); \
+	char *file_basename_str = strdup(path); \
+	p.file_basename = basename(file_basename_str); \
+	char *file_ext_str = strdup(p.file_basename); \
+	char *file_ext = strrchr(file_ext_str, '.'); \
+	if(file_ext) { \
+		*file_ext = 0; \
+		p.file_ext = file_ext[1] ? file_ext + 1 : 0; \
+	} \
+	p.file_base = file_ext_str;
+
+#define FREE_PATH_INFO() \
+	free(file_ext_str); \
+	free(file_basename_str); \
+	free(file_dirname_str);
+
 #ifdef HAVE_LIBZIP
 static int each_file_zip(const char *path, struct file_type_filter *filters, int flags) {
+	(void)flags;
 	int err;
 	zip_t *z = zip_open(path, ZIP_RDONLY, &err);
 	if(!z) return err;
@@ -516,36 +536,35 @@ static int each_file_zip(const char *path, struct file_type_filter *filters, int
 		zip_close(z);
 		return -1;
 	}
-	if(flags & EF_CREATE_WRITABLE_ZIP_DIRS) {
-		// char writable_path[PATH_MAX];
-		// strncpy(writable_path, filename, sizeof(writable_path));
-		// if(writable_path[l-4] == '.')
-		// 	writable_path[l-4] = 0;
-		// mkdir(writable_path, 0777);
-		// if(errno && errno != EEXIST) {
-		// 	fprintf(stderr, "Could not make directory %s: %s (%d)\n", writable_path, strerror(errno), errno);
-		// 	return errno;
-		// }
-	}
+	struct path_info p;
+	p.zip_file_name = (char *)path;
+	char *zip_dirname_str = strdup(path);
+	p.zip_file_dirname = dirname(zip_dirname_str);
+	char *zip_basename_str = strdup(path);
+	p.zip_file_base = basename(zip_basename_str);
+	char *zip_ext = strrchr(p.zip_file_base, '.');
+	if(zip_ext) *zip_ext = 0;
+
 	for(int j = 0; j < num_entries; j++) {
 		zip_stat_t st;
 		zip_stat_index(z, j, ZIP_STAT_NAME | ZIP_STAT_SIZE, &st);
 		const char *ext = strrchr(st.name, '.');
-		if(ext) {
-			if(!ext[1]) continue;
-			ext++;
-			for(struct file_type_filter *f = filters; f->ext; f++) {
-				if(strcasecmp(ext, f->ext)) continue;
-				struct zip_file_stream s;
-				int r = zip_file_stream_init_index(&s, z, j);
-				if(r) return r;
-				r = f->file_cb(path, (struct stream *)&s, f->user_data);
-				stream_close((struct stream *)&s);
-				if(r) return r;
-				break;
-			}
+		if(!ext || !ext[1]) continue;
+		for(struct file_type_filter *f = filters; f->ext; f++) {
+			if(strcasecmp(ext, f->ext)) continue;
+			struct zip_file_stream s;
+			int r = zip_file_stream_init_index(&s, z, j);
+			if(r) return r;
+			FILL_PATH_INFO(st.name);
+			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
+			FREE_PATH_INFO();
+			stream_close((struct stream *)&s);
+			if(r) return r;
+			break;
 		}
 	}
+	free(zip_basename_str);
+	free(zip_dirname_str);
 	zip_close(z);
 	return 0;
 }
@@ -554,15 +573,21 @@ static int each_file_zip(const char *path, struct file_type_filter *filters, int
 static int each_file_file(const char *path, const char *ext, struct file_type_filter *filters, int flags) {
 	for(struct file_type_filter *f = filters; f->ext; f++) {
 		if(strcasecmp(ext, f->ext)) continue;
+		struct path_info p;
+		p.zip_file_name = p.zip_file_base = p.zip_file_dirname = 0;
 		if(flags & EF_OPEN_STREAM) {
 			struct file_stream s;
 			int r = file_stream_init(&s, path, "rb");
 			if(r) return r;
-			r = f->file_cb(path, (struct stream *)&s, f->user_data);
+			FILL_PATH_INFO(path);
+			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
+			FREE_PATH_INFO();
 			stream_close((struct stream *)&s);
 			if(r) return r;
 		} else {
-			f->file_cb(path, 0, f->user_data);
+			FILL_PATH_INFO(path);
+			f->file_cb(&p, 0, f->user_data);
+			FREE_PATH_INFO();
 		}
 		return 0;
 	}
