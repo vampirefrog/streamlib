@@ -18,6 +18,7 @@ jobs:
     - name: make tests
       run: make HAVE_LIBZIP=1 tests
   msys2-mingw64:
+    # https://www.msys2.org/docs/ci/
     runs-on: windows-latest
     defaults:
       run:
