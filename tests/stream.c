@@ -30,13 +30,13 @@ void test_mem_stream_write_read() {
 // File Stream Tests
 void test_file_stream_init() {
 	struct file_stream fstream;
-	assert(file_stream_init(&fstream, "test.txt", MODE_WRITE) == 0);
+	assert(file_stream_init(&fstream, "test.txt", "w") == 0);
 	assert(stream_close((struct stream *)&fstream) == 0);
 }
 
 void test_file_stream_write_read() {
 	struct file_stream fstream;
-	file_stream_init(&fstream, "test.txt", MODE_WRITE | MODE_READ);
+	file_stream_init(&fstream, "test.txt", "w+");
 
 	const char *data = "Hello, StreamLib!";
 	assert(stream_write((struct stream *)&fstream, data, strlen(data)) == (ssize_t)strlen(data));

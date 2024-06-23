@@ -234,12 +234,8 @@ struct stream *mem_stream_new(void *existing_data, size_t existing_data_len);
  */
 struct file_stream {
 	struct stream stream; /**< Base stream structure */
-	int fd, mode, eof;
+	FILE *f;
 };
-
-#define MODE_READ 1
-#define MODE_WRITE 2
-#define MODE_APPEND 4
 
 /**
  * @brief Initialize a file stream.
@@ -248,7 +244,7 @@ struct file_stream {
  * @param mode Mode in which to open the file.
  * @return Status code.
  */
-int file_stream_init(struct file_stream *stream, const char *filename, int mode);
+int file_stream_init(struct file_stream *stream, const char *filename, const char *mode);
 
 #ifdef WIN32
 /**
@@ -268,7 +264,7 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
  * @param mode Mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
-struct stream *file_stream_new(const char *filename, const int mode);
+struct stream *file_stream_new(const char *filename, const char *mode);
 
 #ifdef WIN32
 /**
@@ -277,7 +273,7 @@ struct stream *file_stream_new(const char *filename, const int mode);
  * @param mode Wide-character mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
-struct stream *file_stream_neww(const wchar_t *filename, const int mode);
+struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode);
 #endif
 
 #ifdef HAVE_LIBZIP

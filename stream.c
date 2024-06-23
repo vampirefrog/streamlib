@@ -236,55 +236,58 @@ struct stream *mem_stream_new(void *existing_data, size_t existing_data_len) {
 
 static ssize_t file_stream_read(struct stream *stream, void *ptr, size_t size) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	ssize_t r = read(file_stream->fd, ptr, size);
-	file_stream->eof = r == 0 ? 1 : 0;
+	ssize_t r = fread(ptr, 1, size, file_stream->f);
 	stream->_errno = errno;
 	return r;
 }
 
 static ssize_t file_stream_write(struct stream *stream, const void *ptr, size_t size) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	ssize_t r = write(file_stream->fd, ptr, size);
+	ssize_t r = fwrite(ptr, 1, size, file_stream->f);
 	stream->_errno = errno;
 	return r;
 }
 
 static size_t file_stream_seek(struct stream *stream, long offset, int whence) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	off_t r = lseek(file_stream->fd, offset, whence);
+	off_t r = fseek(file_stream->f, offset, whence);
 	stream->_errno = errno;
 	return r;
 }
 
 static int file_stream_eof(struct stream *stream) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	return file_stream->eof;
+	int r = feof(file_stream->f);
+	stream->_errno = errno;
+	return r;
 }
 
 static long file_stream_tell(struct stream *stream) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	off_t o = lseek(file_stream->fd, 0, SEEK_CUR);
+	long l = ftell(file_stream->f);
 	stream->_errno = errno;
-	return o;
+	return l;
 }
 
 static int file_stream_vprintf(struct stream *stream, const char *fmt, va_list ap) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	return vdprintf(file_stream->fd, fmt, ap);
+	return vfprintf(file_stream->f, fmt, ap);
 }
 
 static void *file_stream_get_memory_access(struct stream *stream, size_t *length) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
 
+	int fd = fileno(file_stream->f);
+
 	struct stat st;
-	if(fstat(file_stream->fd, &st) == -1) {
+	if(fstat(fd, &st) == -1) {
 		stream->_errno = errno;
 		return 0;
 	}
 	if(length) *length = st.st_size;
 
 #ifdef WIN32
-	HANDLE fileMapping = CreateFileMapping((HANDLE)_get_osfhandle(file_stream->fd), NULL, PAGE_READONLY, 0, 0, NULL);
+	HANDLE fileMapping = CreateFileMapping((HANDLE)_get_osfhandle(fd), NULL, PAGE_READONLY, 0, 0, NULL);
 	if(!fileMapping) return 0;
 
 	stream->mem = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, st.st_size);
@@ -295,7 +298,7 @@ static void *file_stream_get_memory_access(struct stream *stream, size_t *length
 #else
 	// Map file into memory using mmap
 	stream->mem_size = st.st_size;
-	stream->mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, file_stream->fd, 0);
+	stream->mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if(stream->mem == MAP_FAILED) {
 		stream->_errno = errno;
 		return 0;
@@ -315,14 +318,15 @@ static int file_stream_revoke_memory_access(struct stream *stream) {
 
 static int file_stream_close(struct stream *stream) {
 	struct file_stream *file_stream = (struct file_stream *)stream;
-	return close(file_stream->fd);
+	int r = fclose(file_stream->f);
+	file_stream->f = 0;
+	stream->_errno = errno;
+	return r;
 }
 
-int file_stream_init_fd(struct file_stream *stream, int fd, int mode) {
+int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	stream_init(&stream->stream);
-	stream->fd = fd;
-	stream->mode = mode;
-	stream->eof = 0;
+	stream->f = f;
 	stream->stream.read = file_stream_read;
 	stream->stream.write = file_stream_write;
 	stream->stream.seek = file_stream_seek;
@@ -335,29 +339,15 @@ int file_stream_init_fd(struct file_stream *stream, int fd, int mode) {
 	return 0;
 }
 
-static int mode2open(int mode) {
-	int openmode = 0;
-	if(mode & MODE_WRITE) {
-		if(mode & MODE_READ)
-			openmode = O_RDWR;
-		else
-			openmode = O_WRONLY;
-		if(mode & MODE_APPEND)
-			openmode |= O_APPEND;
-		else
-			openmode |= O_TRUNC | O_CREAT;
-	} else if(mode & MODE_READ) openmode = O_RDONLY;
-	return openmode;
-}
-
-int file_stream_init(struct file_stream *stream, const char *filename, const int mode) {
+int file_stream_init(struct file_stream *stream, const char *filename, const char *mode) {
 	stream_init(&stream->stream);
-	int fd = open(filename, mode2open(mode));
-	if(fd < 0) return errno;
-	return file_stream_init_fd(stream, fd, mode);
+	FILE *f = fopen(filename, mode);
+	stream->stream._errno = errno;
+	if(!f) return errno;
+	return file_stream_init_fp(stream, f);
 }
 
-struct stream *file_stream_new(const char *filename, const int mode) {
+struct stream *file_stream_new(const char *filename, const char *mode) {
 	struct file_stream *s = malloc(sizeof(struct file_stream));
 	if(!s) return 0;
 	int r = file_stream_init(s, filename, mode);
@@ -369,9 +359,9 @@ struct stream *file_stream_new(const char *filename, const int mode) {
 }
 
 #ifdef WIN32
-int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const int mode) {
+int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode) {
 	stream_init(&stream->stream);
-	int fd = _wopen(filename, mode2open(mode));
+	int fd = _wfopen(filename, mode);
 	if(!fd) return _errno;
 	return file_stream_init_fd(stream, fd, mode);
 }
@@ -693,7 +683,7 @@ static int each_file_file(const char *path, const char *ext, struct file_type_fi
 #endif
 		if(flags & EF_OPEN_STREAM) {
 			struct file_stream s;
-			int r = file_stream_init(&s, path, MODE_READ);
+			int r = file_stream_init(&s, path, "rb");
 			if(r) return r;
 			FILL_PATH_INFO(path);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
