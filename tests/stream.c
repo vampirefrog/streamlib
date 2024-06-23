@@ -7,7 +7,7 @@
 void test_mem_stream_init() {
 	struct mem_stream mstream;
 	assert(mem_stream_init(&mstream, 0, 0) == 0);
-	stream_close((struct stream *)&mstream);
+	assert(stream_close((struct stream *)&mstream) == 0);
 }
 
 void test_mem_stream_write_read() {
@@ -15,23 +15,23 @@ void test_mem_stream_write_read() {
 	mem_stream_init(&mstream, 0, 0);
 
 	const char *data = "Hello, StreamLib!";
-	stream_write((struct stream *)&mstream, data, strlen(data));
+	assert(stream_write((struct stream *)&mstream, data, strlen(data)) == (ssize_t)strlen(data));
 
 	char buffer[20];
-	stream_seek((struct stream *)&mstream, 0, SEEK_SET);
-	stream_read((struct stream *)&mstream, buffer, strlen(data));
+	assert(stream_seek((struct stream *)&mstream, 0, SEEK_SET) == 0);
+	assert(stream_read((struct stream *)&mstream, buffer, strlen(data)) == (ssize_t)strlen(data));
 	buffer[strlen(data)] = '\0';
 
 	assert(strcmp(buffer, data) == 0);
 
-	stream_close((struct stream *)&mstream);
+	assert(stream_close((struct stream *)&mstream) == 0);
 }
 
 // File Stream Tests
 void test_file_stream_init() {
 	struct file_stream fstream;
 	assert(file_stream_init(&fstream, "test.txt", MODE_WRITE) == 0);
-	stream_close((struct stream *)&fstream);
+	assert(stream_close((struct stream *)&fstream) == 0);
 }
 
 void test_file_stream_write_read() {
