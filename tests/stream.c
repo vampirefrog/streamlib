@@ -30,25 +30,25 @@ void test_mem_stream_write_read() {
 // File Stream Tests
 void test_file_stream_init() {
 	struct file_stream fstream;
-	assert(file_stream_init(&fstream, "test.txt", "w") == 0);
+	assert(file_stream_init(&fstream, "test.txt", MODE_WRITE) == 0);
 	stream_close((struct stream *)&fstream);
 }
 
 void test_file_stream_write_read() {
 	struct file_stream fstream;
-	file_stream_init(&fstream, "test.txt", "w+");
+	file_stream_init(&fstream, "test.txt", MODE_WRITE | MODE_READ);
 
 	const char *data = "Hello, StreamLib!";
-	stream_write((struct stream *)&fstream, data, strlen(data));
+	assert(stream_write((struct stream *)&fstream, data, strlen(data)) == (ssize_t)strlen(data));
 
 	char buffer[20];
-	stream_seek((struct stream *)&fstream, 0, SEEK_SET);
-	stream_read((struct stream *)&fstream, buffer, strlen(data));
+	assert(stream_seek((struct stream *)&fstream, 0, SEEK_SET) == 0);
+	assert(stream_read((struct stream *)&fstream, buffer, strlen(data)) == (ssize_t)strlen(data));
 	buffer[strlen(data)] = '\0';
 
 	assert(strcmp(buffer, data) == 0);
 
-	stream_close((struct stream *)&fstream);
+	assert(stream_close((struct stream *)&fstream) == 0);
 }
 
 // Main function to run all tests
