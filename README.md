@@ -12,11 +12,35 @@ StreamLib is a versatile C library designed to handle various types of streams, 
 - **Zip File Streams:** Support for reading streams from zip archives (when compiled with libzip).
 - **Convenience Functions:** Read/write utility functions for various data types.
 
+| Module   | Mode | gzip | open | read | write | seek | eof | tell | mmap | munmap | close |
+|----------|------|------|------|------|-------|------|-----|------|------|--------|-------|
+| Mem      | R    | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+|          | R    | yes  | ☑️   | ☑️   | ⛔    | ☑️³  | ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
+|          | W    | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | W    | yes  | ☑️   | ⛔   | ☑️    | ☑️¹  | ⛔  | ☑️   | ⛔   | ⛔     | ☑️    |
+|          | RW   | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | RW   | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+| File     | R    | no   | ☑️   | ☑️   | ⛔    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | R    | yes  | ☑️   | ☑️   | ⛔    | ☑️³  | ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
+|          | W    | no   | ☑️   | ⛔   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | W    | yes  | ☑️   | ⛔   | ☑️    | ☑️¹  | ⛔  | ☑️   | ⛔   | ⛔     | ☑️    |
+|          | RW   | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | RW   | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+| Zip file | R    | no   | ☑️   | ☑️   | ⛔    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
+|          | R    | yes  | ☑️   | ☑️   | ⛔    | ☑️   | ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
+|          | W    | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+|          | W    | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+|          | RW   | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+|          | RW   | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
+
+¹ Forward only
+² Slurp into memory block
+³ Slow
+
 ## Table of Contents
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [API Documentation](#api-documentation)
 - [Contributing](#contributing)
 
 ## Installation
@@ -68,20 +92,6 @@ int main() {
     return 0;
 }
 ```
-
-### Advanced Usage
-
-For advanced usage and more examples, please refer to the `examples` directory in the repository.
-
-## API Documentation
-
-Detailed API documentation is available in the `docs` directory. You can also generate the documentation using Doxygen:
-
-```sh
-doxygen Doxyfile
-```
-
-This will generate the documentation in the `docs` directory, which you can open in a web browser.
 
 ## Contributing
 
