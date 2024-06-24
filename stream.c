@@ -361,9 +361,9 @@ struct stream *file_stream_new(const char *filename, const char *mode) {
 #ifdef WIN32
 int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode) {
 	stream_init(&stream->stream);
-	int fd = _wfopen(filename, mode);
-	if(!fd) return _errno;
-	return file_stream_init_fd(stream, fd, mode);
+	FILE *f = _wfopen(filename, mode);
+	if(!f) return errno;
+	return file_stream_init_fp(stream, f);
 }
 
 struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode) {
