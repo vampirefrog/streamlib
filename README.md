@@ -33,9 +33,9 @@ StreamLib is a versatile C library designed to handle various types of streams, 
 |          | RW | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
 |          | RW | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
 
-1. Forward only
+1. [Forward only](https://www.zlib.net/manual.html#Gzip)
 2. Slurp into memory block
-3. Slow
+3. [Slow](https://www.zlib.net/manual.html#Gzip)
 
 ## Table of Contents
 
