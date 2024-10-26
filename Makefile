@@ -13,7 +13,7 @@ endif
 
 all: libstream.a
 
-libstream.a: stream.o
+libstream.a: each_file.o file_stream.o mem_stream.o stream.o zip_file_stream.o
 	$(AR) rcs $@ $^
 
 %.o: %.c
