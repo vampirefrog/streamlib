@@ -21,7 +21,7 @@ struct mem_stream {
  * @param data_len Length of the data.
  * @return Status code.
  */
-int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_len);
+int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_len, int stream_flags);
 
 /**
  * @brief Create a memory stream.
@@ -29,4 +29,4 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_
  * @param existing_data_len Length of the data.
  * @return Pointer to the created memory stream object.
  */
-struct stream *mem_stream_new(void *existing_data, size_t existing_data_len);
+struct stream *mem_stream_new(void *existing_data, size_t existing_data_len, int stream_flags);

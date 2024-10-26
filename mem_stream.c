@@ -95,8 +95,8 @@ static int mem_stream_close(struct stream *stream) {
 	return 0;
 }
 
-int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t existing_data_len) {
-	stream_init(&stream->stream);
+int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t existing_data_len, int stream_flags) {
+	stream_init(&stream->stream, stream_flags);
 
 	if(existing_data) {
 		stream->data = existing_data;
@@ -118,10 +118,10 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 	return 0;
 }
 
-struct stream *mem_stream_new(void *existing_data, size_t existing_data_len) {
+struct stream *mem_stream_new(void *existing_data, size_t existing_data_len, int stream_flags) {
 	struct mem_stream *s = malloc(sizeof(struct mem_stream));
 	if(!s) return 0;
-	int r = mem_stream_init(s, existing_data, existing_data_len);
+	int r = mem_stream_init(s, existing_data, existing_data_len, stream_flags);
 	if(r) {
 		free(s);
 		return 0;

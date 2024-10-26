@@ -108,7 +108,11 @@ static int each_file_zip(const char *path, struct file_type_filter *filters, int
 		for(struct file_type_filter *f = filters; f->ext; f++) {
 			if(strcasecmp(ext, f->ext)) continue;
 			struct zip_file_stream s;
-			int r = zip_file_stream_init_index(&s, z, j);
+#ifdef HAVE_GZIP
+			int r = zip_file_stream_init_index(&s, z, j, (flags & EF_TRANSPARENT_GZIP) ? STREAM_TRANSPARENT_GZIP : 0);
+#else
+			int r = zip_file_stream_init_index(&s, z, j, 0);
+#endif
 			if(r) return r;
 			FILL_PATH_INFO(st.name);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
@@ -177,7 +181,11 @@ static int each_file_zipw(const wchar_t *path, struct file_type_filterw *filters
 		for(struct file_type_filterw *f = filters; f->ext; f++) {
 			if(_wcsicmp(ext, f->ext)) continue;
 			struct zip_file_stream s;
-			int r = zip_file_stream_init_index(&s, z, j);
+#ifdef HAVE_GZIP
+			int r = zip_file_stream_init_index(&s, z, j, (flags & EF_TRANSPARENT_GZIP) ? STREAM_TRANSPARENT_GZIP : 0);
+#else
+			int r = zip_file_stream_init_index(&s, z, j, 0);
+#endif
 			if(r) return r;
 			FILL_PATH_INFOW(stname);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
@@ -205,7 +213,11 @@ static int each_file_file(const char *path, const char *ext, struct file_type_fi
 #endif
 		if(flags & EF_OPEN_STREAM) {
 			struct file_stream s;
-			int r = file_stream_init(&s, path, "rb");
+#ifdef HAVE_GZIP
+			int r = file_stream_init(&s, path, "rb", (flags & EF_TRANSPARENT_GZIP) ? STREAM_TRANSPARENT_GZIP : 0);
+#else
+			int r = file_stream_init(&s, path, "rb", 0);
+#endif
 			if(r) return r;
 			FILL_PATH_INFO(path);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);
@@ -230,7 +242,11 @@ static int each_file_filew(const wchar_t *path, const wchar_t *ext, struct file_
 		p.zip_file_name = p.zip_file_base = p.zip_file_dirname = 0;
 		if(flags & EF_OPEN_STREAM) {
 			struct file_stream s;
-			int r = file_stream_initw(&s, path, L"rb");
+#ifdef HAVE_GZIP
+			int r = file_stream_initw(&s, path, L"rb", (flags & EF_TRANSPARENT_GZIP) ? STREAM_TRANSPARENT_GZIP : 0);
+#else
+			int r = file_stream_initw(&s, path, L"rb", 0);
+#endif
 			if(r) return r;
 			FILL_PATH_INFOW(path);
 			r = f->file_cb(&p, (struct stream *)&s, f->user_data);

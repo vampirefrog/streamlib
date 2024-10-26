@@ -1,3 +1,10 @@
+#include <stddef.h>
+#include <sys/types.h>
+#include <stdarg.h>
+#include <stdlib.h>
+
+#include "zip_file_stream.h"
+
 #ifdef HAVE_LIBZIP
 static ssize_t zip_file_stream_read(struct stream *stream, void *ptr, size_t size) {
 	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
@@ -69,8 +76,8 @@ static int zip_file_stream_close(struct stream *stream) {
 	return r;
 }
 
-int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index)  {
-	stream_init(&stream->stream);
+int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags)  {
+	stream_init(&stream->stream, stream_flags);
 
 	int r = zip_stat_index(zip, index, ZIP_STAT_SIZE, &stream->stat);
 	stream->stream._errno = zip_error_code_system(zip_get_error(zip));
@@ -93,10 +100,10 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 	return 0;
 }
 
-struct stream *zip_file_stream_create_index(zip_t *zip, int index) {
+struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_flags) {
 	struct zip_file_stream *s = malloc(sizeof(struct zip_file_stream));
 	if(!s) return 0;
-	int r = zip_file_stream_init_index(s, zip, index);
+	int r = zip_file_stream_init_index(s, zip, index, stream_flags);
 	if(r) {
 		free(s);
 		return 0;

@@ -102,8 +102,7 @@ static int file_stream_close(struct stream *stream) {
 	return r;
 }
 
-int file_stream_init_fp(struct file_stream *stream, FILE *f) {
-	stream_init(&stream->stream);
+static int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	stream->f = f;
 	stream->stream.read = file_stream_read;
 	stream->stream.write = file_stream_write;
@@ -117,18 +116,18 @@ int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	return 0;
 }
 
-int file_stream_init(struct file_stream *stream, const char *filename, const char *mode) {
-	stream_init(&stream->stream);
+int file_stream_init(struct file_stream *stream, const char *filename, const char *mode, int stream_flags) {
+	stream_init(&stream->stream, stream_flags);
 	FILE *f = fopen(filename, mode);
 	stream->stream._errno = errno;
 	if(!f) return errno;
 	return file_stream_init_fp(stream, f);
 }
 
-struct stream *file_stream_new(const char *filename, const char *mode) {
+struct stream *file_stream_new(const char *filename, const char *mode, int stream_flags) {
 	struct file_stream *s = malloc(sizeof(struct file_stream));
 	if(!s) return 0;
-	int r = file_stream_init(s, filename, mode);
+	int r = file_stream_init(s, filename, mode, stream_flags);
 	if(r) {
 		free(s);
 		return 0;
@@ -137,17 +136,17 @@ struct stream *file_stream_new(const char *filename, const char *mode) {
 }
 
 #ifdef WIN32
-int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode) {
-	stream_init(&stream->stream);
+int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode, int stream_flags) {
+	stream_init(&stream->stream, stream_flags);
 	FILE *f = _wfopen(filename, mode);
 	if(!f) return errno;
 	return file_stream_init_fp(stream, f);
 }
 
-struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode) {
+struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode, int stream_flags) {
 	struct file_stream *s = malloc(sizeof(struct file_stream));
 	if(!s) return 0;
-	int r = file_stream_initw(s, filename, mode);
+	int r = file_stream_initw(s, filename, mode, stream_flags);
 	if(r) {
 		free(s);
 		return 0;

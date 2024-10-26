@@ -18,7 +18,7 @@ struct file_stream {
  * @param mode Mode in which to open the file.
  * @return Status code.
  */
-int file_stream_init(struct file_stream *stream, const char *filename, const char *mode);
+int file_stream_init(struct file_stream *stream, const char *filename, const char *mode, int stream_flags);
 
 #ifdef WIN32
 /**
@@ -28,7 +28,7 @@ int file_stream_init(struct file_stream *stream, const char *filename, const cha
  * @param mode Wide-character mode in which to open the file.
  * @return Status code.
  */
-int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode);
+int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode, int stream_flags);
 #endif
 
 /**
@@ -38,7 +38,7 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
  * @param mode Mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
-struct stream *file_stream_new(const char *filename, const char *mode);
+struct stream *file_stream_new(const char *filename, const char *mode, int stream_flags);
 
 #ifdef WIN32
 /**
@@ -47,5 +47,5 @@ struct stream *file_stream_new(const char *filename, const char *mode);
  * @param mode Wide-character mode in which to open the file.
  * @return Pointer to the created file stream object.
  */
-struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode);
+struct stream *file_stream_neww(const wchar_t *filename, const wchar_t *mode, int stream_flags);
 #endif

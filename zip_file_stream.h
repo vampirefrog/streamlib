@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stream.h"
+
 #ifdef HAVE_LIBZIP
 /**
  * @struct zip_file_stream
@@ -18,7 +20,7 @@ struct zip_file_stream {
  * @param index Index of the file within the zip archive.
  * @return Status code.
  */
-int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index);
+int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags);
 
 /**
  * @brief Create a zip file stream by index.
@@ -26,5 +28,5 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
  * @param index Index of the file within the zip archive.
  * @return Pointer to the created zip file stream object.
  */
-struct stream *zip_file_stream_create_index(zip_t *zip, int index);
+struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_flags);
 #endif

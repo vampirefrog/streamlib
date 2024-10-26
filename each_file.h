@@ -60,6 +60,9 @@ struct file_type_filterw {
 #define EF_RECURSE_ARCHIVES 0x02 /**< Flag to recurse archives (currently zip only) */
 #endif
 #define EF_OPEN_STREAM 0x04 /**< Flag to open the file and provide the stream instance */
+#ifdef HAVE_GZIP
+#define EF_TRANSPARENT_GZIP 0x08
+#endif
 
 /**
  * @brief Process each file in the specified path according to the filters and flags.

@@ -44,6 +44,11 @@
 #include <zip.h>
 #endif
 
+// stream flags
+#ifdef HAVE_GZIP
+#define STREAM_TRANSPARENT_GZIP 0x01
+#endif
+
 /**
  * @struct stream
  * @brief Generic stream structure to handle various stream operations.
@@ -52,6 +57,7 @@ struct stream {
 	int _errno; /**< Error number */
 	void *mem; /**< Pointer for memory access functions */
 	size_t mem_size; /**< Size of the memory buffer */
+	int flags;
 
 	ssize_t (*read)(struct stream *, void *ptr, size_t size); /**< Function pointer to read data from the stream */
 	ssize_t (*write)(struct stream *, const void *ptr, size_t size); /**< Function pointer to write data to the stream */
@@ -64,7 +70,7 @@ struct stream {
 	int (*close)(struct stream *); /**< Function pointer to close the stream */
 };
 
-void stream_init(struct stream *stream);
+void stream_init(struct stream *stream, int flags);
 
 /**
  * @brief Read data from the stream.

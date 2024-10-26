@@ -3,8 +3,9 @@
 
 #include "stream.h"
 
-void stream_init(struct stream *stream) {
+void stream_init(struct stream *stream, int flags) {
 	memset(stream, 0, sizeof(*stream));
+	stream->flags = flags;
 }
 
 ssize_t stream_read(struct stream *stream, void *ptr, size_t size) {
