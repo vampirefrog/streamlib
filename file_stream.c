@@ -230,7 +230,7 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
 		memset(cmode, 0, sizeof(cmode));
 		for(size_t i = 0; i < wcslen(mode) && i < sizeof(cmode) / sizeof(cmode[0]); i++)
 			cmode[i] = mode[i];
-		gzFile *f = gzopen_w(filename, cmode);
+		gzFile f = gzopen_w(filename, cmode);
 		stream->stream._errno = errno;
 		if(!f) return errno;
 		return file_stream_init_gz(stream, f);
