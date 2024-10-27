@@ -14,9 +14,9 @@ jobs:
       run: sudo apt-get install -y libzip-dev
     - uses: actions/checkout@v4
     - name: make
-      run: make HAVE_LIBZIP=1
+      run: make HAVE_LIBZIP=1 HAVE_GZIP=1
     - name: make tests
-      run: make HAVE_LIBZIP=1 tests
+      run: make HAVE_LIBZIP=1 HAVE_GZIP=1 tests
   msys2-mingw64:
     # https://www.msys2.org/docs/ci/
     runs-on: windows-latest
