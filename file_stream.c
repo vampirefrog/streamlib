@@ -226,7 +226,11 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
 	stream_init(&stream->stream, stream_flags);
 #ifdef HAVE_GZIP
 	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
-		gzFile *f = gzopen_w(filename, mode);
+		char cmode[10];
+		memset(cmode, 0, sizeof(cmode));
+		for(int i = 0; i < strlen(mode) && i < sizeof(cmode) / sizeof(cmode[0]); i++)
+			cmode[i] = mode[i];
+		gzFile *f = gzopen_w(filename, cmode);
 		stream->stream._errno = errno;
 		if(!f) return errno;
 		return file_stream_init_gz(f);
