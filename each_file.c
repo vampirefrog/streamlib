@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #ifdef WIN32
 #include <windows.h>
+#include <fcntl.h>
 #include <io.h>
 #endif
 
