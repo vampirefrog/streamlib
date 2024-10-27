@@ -19,11 +19,11 @@ static int each_file_dir(const char *path, struct file_type_filter *filters, int
 	while((de = readdir(d))) {
 		if(de->d_name[0] == '.' && de->d_name[1] == 0) continue;
 		if(de->d_name[0] == '.' && de->d_name[1] == '.' && de->d_name[2] == 0) continue;
-		char rpath[PATH_MAX + 2]; // FIXME: maybe allocate new string instead?
+		char rpath[PATH_MAX + 1 + sizeof(de->d_name) + 1]; // FIXME: maybe allocate new string instead?
 		if(path[0])
-			snprintf(rpath, PATH_MAX, "%s/%s", path, de->d_name);
+			snprintf(rpath, sizeof(rpath) / sizeof(rpath[0]), "%s/%s", path, de->d_name);
 		else
-			snprintf(rpath, PATH_MAX, "%s", de->d_name);
+			snprintf(rpath, sizeof(rpath) / sizeof(rpath[0]), "%s", de->d_name);
 		each_file(rpath, filters, flags);
 	}
 	if(closedir(d)) return errno;
