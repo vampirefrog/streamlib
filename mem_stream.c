@@ -160,6 +160,17 @@ static int mem_stream_close_gz(struct stream *stream) {
 }
 #endif
 
+static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_data_len) {
+	if(stream->data_len < 20) return 0;
+	if(data[0] != 0x1f) return 0;
+	if(data[1] != 0x8b) return 0;
+	if(decompressed_data_len) {
+		uint8_t *p = data + data_len - 4;
+		*decompressed_data_len = p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24;
+	}
+	return 1;
+}
+
 int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t existing_data_len, int stream_flags) {
 	stream_init(&stream->stream, stream_flags);
 
@@ -175,14 +186,12 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 #ifdef HAVE_GZIP
 	// Smallest gzip file is 20 bytes from my experiments:
 	// echo -n "" | gzip | hd
-	if(stream_flags & STREAM_TRANSPARENT_GZIP && stream->data_len >= 20 && ((uint8_t *)stream->data)[0] == 0x1f && ((uint8_t *)stream->data)[1] == 0x8b) {
+	if(stream_flags & STREAM_TRANSPARENT_GZIP && check_gzip_data(stream->data, stream->data_len, &stream->decompressed_data_len)) {
 		stream->z_stream.zalloc = 0;
 		stream->z_stream.zfree = 0;
 		stream->z_stream.opaque = 0;
 		stream->z_stream.avail_in = stream->data_len;
 		stream->z_stream.next_in = (z_const Bytef *)stream->data;
-		uint8_t *p = stream->data + stream->data_len - 4;
-		stream->decompressed_data_len = p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24;
 		if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
 			return 1;
 		stream->stream.write = mem_stream_write_gz;
