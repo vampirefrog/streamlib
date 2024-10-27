@@ -233,7 +233,7 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
 		gzFile *f = gzopen_w(filename, cmode);
 		stream->stream._errno = errno;
 		if(!f) return errno;
-		return file_stream_init_gz(f);
+		return file_stream_init_gz(stream, f);
 	}
 #endif
 	FILE *f = _wfopen(filename, mode);
