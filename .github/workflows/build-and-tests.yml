@@ -33,4 +33,4 @@ jobs:
       - name: CI-Build
         run: |
           echo 'Running in MSYS2!'
-          make HAVE_LIBZIP=1 clean tests
+          make HAVE_LIBZIP=1 HAVE_GZIP=1 clean tests
