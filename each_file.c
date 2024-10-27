@@ -19,11 +19,11 @@ static int each_file_dir(const char *path, struct file_type_filter *filters, int
 	while((de = readdir(d))) {
 		if(de->d_name[0] == '.' && de->d_name[1] == 0) continue;
 		if(de->d_name[0] == '.' && de->d_name[1] == '.' && de->d_name[2] == 0) continue;
-		char rpath[PATH_MAX]; // FIXME: maybe allocate new string instead?
+		char rpath[PATH_MAX + 2]; // FIXME: maybe allocate new string instead?
 		if(path[0])
-			snprintf(rpath, sizeof(rpath), "%s/%s", path, de->d_name);
+			snprintf(rpath, PATH_MAX, "%s/%s", path, de->d_name);
 		else
-			snprintf(rpath, sizeof(rpath), "%s", de->d_name);
+			snprintf(rpath, PATH_MAX, "%s", de->d_name);
 		each_file(rpath, filters, flags);
 	}
 	if(closedir(d)) return errno;
@@ -36,7 +36,7 @@ static int each_file_dirw(const wchar_t *path, struct file_type_filterw *filters
 	HANDLE h = FindFirstFileW(path, &fdata);
 	if(h == INVALID_HANDLE_VALUE) return -1;
 	do {
-		wchar_t rpath[MAX_PATH];
+		wchar_t rpath[MAX_PATH + 2];
 		if(path[0])
 			swprintf(rpath, MAX_PATH, L"%s\\%s", path, fdata.cFileName);
 		else
