@@ -228,7 +228,7 @@ int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const
 	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
 		char cmode[10];
 		memset(cmode, 0, sizeof(cmode));
-		for(int i = 0; i < wcslen(mode) && i < sizeof(cmode) / sizeof(cmode[0]); i++)
+		for(size_t i = 0; i < wcslen(mode) && i < sizeof(cmode) / sizeof(cmode[0]); i++)
 			cmode[i] = mode[i];
 		gzFile *f = gzopen_w(filename, cmode);
 		stream->stream._errno = errno;
