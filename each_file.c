@@ -4,6 +4,9 @@
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 #include "each_file.h"
 
