@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #endif
+#ifdef HAVE_GZIP
+#include <zlib.h>
+#endif
 
 #include "file_stream.h"
 
@@ -116,8 +119,91 @@ static int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	return 0;
 }
 
+#ifdef HAVE_GZIP
+static ssize_t file_stream_read_gz(struct stream *stream, void *ptr, size_t size) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	ssize_t r = gzread(file_stream->gz, ptr, size);
+	stream->_errno = errno;
+	return r;
+}
+
+static ssize_t file_stream_write_gz(struct stream *stream, const void *ptr, size_t size) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	ssize_t r = gzwrite(file_stream->gz, ptr, size);
+	stream->_errno = errno;
+	return r;
+}
+
+static size_t file_stream_seek_gz(struct stream *stream, long offset, int whence) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	off_t r = gzseek(file_stream->gz, offset, whence);
+	stream->_errno = errno;
+	return r;
+}
+
+static int file_stream_eof_gz(struct stream *stream) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	int r = gzeof(file_stream->gz);
+	stream->_errno = errno;
+	return r;
+}
+
+static long file_stream_tell_gz(struct stream *stream) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	long l = gztell(file_stream->gz);
+	stream->_errno = errno;
+	return l;
+}
+
+static int file_stream_vprintf_gz(struct stream *stream, const char *fmt, va_list ap) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	return gzvprintf(file_stream->gz, fmt, ap);
+}
+
+static void *file_stream_get_memory_access_gz(struct stream *stream, size_t *length) {
+	(void)stream;
+	(void)length;
+	return 0;
+}
+
+static int file_stream_revoke_memory_access_gz(struct stream *stream) {
+	(void)stream;
+	return 0;
+}
+
+static int file_stream_close_gz(struct stream *stream) {
+	struct file_stream *file_stream = (struct file_stream *)stream;
+	int r = gzclose(file_stream->gz);
+	file_stream->gz = 0;
+	stream->_errno = errno;
+	return r;
+}
+
+static int file_stream_init_gz(struct file_stream *stream, gzFile gz) {
+	stream->gz = gz;
+	stream->stream.read = file_stream_read_gz;
+	stream->stream.write = file_stream_write_gz;
+	stream->stream.seek = file_stream_seek_gz;
+	stream->stream.eof = file_stream_eof_gz;
+	stream->stream.tell = file_stream_tell_gz;
+	stream->stream.vprintf = file_stream_vprintf_gz;
+	stream->stream.get_memory_access = file_stream_get_memory_access_gz;
+	stream->stream.revoke_memory_access = file_stream_revoke_memory_access_gz;
+	stream->stream.close = file_stream_close_gz;
+	return 0;
+}
+#endif
+
 int file_stream_init(struct file_stream *stream, const char *filename, const char *mode, int stream_flags) {
 	stream_init(&stream->stream, stream_flags);
+#ifdef HAVE_GZIP
+	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
+		gzFile f = gzopen(filename, mode);
+		stream->stream._errno = errno;
+		if(!f) return errno;
+		return file_stream_init_gz(stream, f);
+	}
+#endif
 	FILE *f = fopen(filename, mode);
 	stream->stream._errno = errno;
 	if(!f) return errno;
@@ -138,6 +224,14 @@ struct stream *file_stream_new(const char *filename, const char *mode, int strea
 #ifdef WIN32
 int file_stream_initw(struct file_stream *stream, const wchar_t *filename, const wchar_t *mode, int stream_flags) {
 	stream_init(&stream->stream, stream_flags);
+#ifdef HAVE_GZIP
+	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
+		gzFile *f = gzopen_w(filename, mode);
+		stream->stream._errno = errno;
+		if(!f) return errno;
+		return file_stream_init_gz(f);
+	}
+#endif
 	FILE *f = _wfopen(filename, mode);
 	if(!f) return errno;
 	return file_stream_init_fp(stream, f);

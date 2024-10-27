@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef HAVE_GZIP
+#include <zlib.h>
+#endif
+
 #include "stream.h"
 
 /**
@@ -12,6 +16,10 @@ struct mem_stream {
 	size_t data_len; /**< Length of the data */
 	ssize_t allocated_len; /**< Allocated length of the data buffer, -1 if using user buffer */
 	size_t position; /**< Current position in the stream */
+#ifdef HAVE_GZIP
+	z_stream z_stream;
+	size_t decompressed_data_len;
+#endif
 };
 
 /**

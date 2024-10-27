@@ -1,4 +1,7 @@
 #pragma once
+#ifdef HAVE_GZIP
+#include <zlib.h>
+#endif
 
 #include "stream.h"
 
@@ -8,7 +11,14 @@
  */
 struct file_stream {
 	struct stream stream; /**< Base stream structure */
-	FILE *f;
+#ifdef HAVE_GZIP
+	union {
+#endif
+		FILE *f;
+#ifdef HAVE_GZIP
+		gzFile gz;
+	};
+#endif
 };
 
 /**
