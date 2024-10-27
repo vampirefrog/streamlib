@@ -161,7 +161,7 @@ static int mem_stream_close_gz(struct stream *stream) {
 #endif
 
 static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_data_len) {
-	if(stream->data_len < 20) return 0;
+	if(data_len < 20) return 0;
 	if(data[0] != 0x1f) return 0;
 	if(data[1] != 0x8b) return 0;
 	if(decompressed_data_len) {
