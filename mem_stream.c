@@ -101,7 +101,6 @@ static int mem_stream_close(struct stream *stream) {
 #ifdef HAVE_GZIP
 static ssize_t mem_stream_read_gz(struct stream *stream, void *ptr, size_t size) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
-
 	mem_stream->z_stream.avail_out = size;
 	mem_stream->z_stream.next_out = (Bytef *)ptr;
 	int ret = inflate(&mem_stream->z_stream, Z_SYNC_FLUSH);
@@ -168,6 +167,7 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 		stream->data = existing_data;
 		stream->allocated_len = -1;
 		stream->data_len = existing_data_len;
+		stream->position = 0;
 	} else {
 		stream->position = stream->data_len = stream->allocated_len = 0;
 		stream->data = 0;
