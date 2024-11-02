@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef HAVE_GZIP
+#include <zlib.h>
+#endif
+
 #include "stream.h"
 
 #ifdef HAVE_LIBZIP
@@ -10,6 +14,12 @@
 struct zip_file_stream {
 	struct stream stream; /**< Base stream structure */
 	zip_file_t *f; /**< Zip file pointer */
+#ifdef HAVE_GZIP
+	void *z_data;
+	size_t z_position;
+	z_stream z_stream;
+	size_t decompressed_data_len;
+#endif
 	zip_stat_t stat; /**< Zip file statistics */
 };
 

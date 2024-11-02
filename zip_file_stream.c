@@ -2,6 +2,9 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#ifdef HAVE_GZIP
+#include <zlib.h>
+#endif
 
 #include "zip_file_stream.h"
 
@@ -76,6 +79,69 @@ static int zip_file_stream_close(struct stream *stream) {
 	return r;
 }
 
+#ifdef HAVE_GZIP
+static ssize_t mem_stream_read_gz(struct stream *stream, void *ptr, size_t size) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	zip_file_stream->z_stream.avail_out = size;
+	zip_file_stream->z_stream.next_out = (Bytef *)ptr;
+	int ret = inflate(&zip_file_stream->z_stream, Z_SYNC_FLUSH);
+	int written = zip_file_stream->z_stream.total_out - zip_file_stream->z_position;
+	zip_file_stream->z_position = zip_file_stream->z_stream.total_out;
+	if(ret == Z_STREAM_END)
+		zip_file_stream->decompressed_data_len = zip_file_stream->z_position;
+	return written;
+}
+
+static ssize_t mem_stream_write_gz(struct stream *stream, const void *ptr, size_t size) {
+	(void)stream;
+	(void)ptr;
+	(void)size;
+	return 0;
+}
+
+static size_t mem_stream_seek_gz(struct stream *stream, long offset, int whence) {
+	(void)stream;
+	(void)offset;
+	(void)whence;
+	return 0;
+}
+
+static int mem_stream_eof_gz(struct stream *stream) {
+	(void)stream;
+	return 0;
+}
+
+static long mem_stream_tell_gz(struct stream *stream) {
+	(void)stream;
+	return -1;
+}
+
+static int mem_stream_vprintf_gz(struct stream *stream, const char *fmt, va_list ap) {
+	(void)stream;
+	(void)fmt;
+	(void)ap;
+	return 0;
+}
+
+static void *mem_stream_get_memory_access_gz(struct stream *stream, size_t *length) {
+	(void)stream;
+	(void)length;
+	return 0;
+}
+
+static int mem_stream_revoke_memory_access_gz(struct stream *stream) {
+	(void)stream;
+	return 1;
+}
+
+static int mem_stream_close_gz(struct stream *stream) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	inflateEnd(&zip_file_stream->z_stream);
+	free(zip_file_stream->z_data);
+	return 0;
+}
+#endif
+
 int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags)  {
 	stream_init(&stream->stream, stream_flags);
 
@@ -87,15 +153,44 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 	stream->stream._errno = zip_error_code_system(zip_get_error(zip));
 	if(!stream->f) return -1;
 
-	stream->stream.read = zip_file_stream_read;
-	stream->stream.write = zip_file_stream_write;
-	stream->stream.seek = zip_file_stream_seek;
-	stream->stream.eof = zip_file_stream_eof;
-	stream->stream.tell = zip_file_stream_tell;
-	stream->stream.vprintf = zip_file_stream_vprintf;
-	stream->stream.get_memory_access = zip_file_stream_get_memory_access;
-	stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
-	stream->stream.close = zip_file_stream_close;
+#ifdef HAVE_GZIP
+	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
+		stream->z_data = malloc(stream->stat.size);
+		if(!stream->z_data) return -3;
+		zip_uint64_t bytes_read = zip_fread(stream->f, stream->z_data, stream->stat.size);
+		if(bytes_read != stream->stat.size) return -4;
+
+		stream->z_stream.zalloc = 0;
+		stream->z_stream.zfree = 0;
+		stream->z_stream.opaque = 0;
+		stream->z_stream.avail_in = stream->stat.size;
+		stream->z_stream.next_in = (z_const Bytef *)stream->z_data;
+		stream->z_position = 0;
+		if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
+			return -5;
+		stream->stream.write = mem_stream_write_gz;
+		stream->stream.read = mem_stream_read_gz;
+		stream->stream.seek = mem_stream_seek_gz;
+		stream->stream.eof  = mem_stream_eof_gz;
+		stream->stream.tell = mem_stream_tell_gz;
+		stream->stream.vprintf = mem_stream_vprintf_gz;
+		stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
+		stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
+		stream->stream.close = mem_stream_close_gz;
+	} else {
+#endif
+		stream->stream.read = zip_file_stream_read;
+		stream->stream.write = zip_file_stream_write;
+		stream->stream.seek = zip_file_stream_seek;
+		stream->stream.eof = zip_file_stream_eof;
+		stream->stream.tell = zip_file_stream_tell;
+		stream->stream.vprintf = zip_file_stream_vprintf;
+		stream->stream.get_memory_access = zip_file_stream_get_memory_access;
+		stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
+		stream->stream.close = zip_file_stream_close;
+#ifdef HAVE_GZIP
+	}
+#endif
 
 	return 0;
 }
