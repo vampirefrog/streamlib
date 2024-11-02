@@ -140,6 +140,17 @@ static int mem_stream_close_gz(struct stream *stream) {
 	free(zip_file_stream->z_data);
 	return 0;
 }
+
+static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_data_len) {
+	if(data_len < 20) return 0;
+	if(data[0] != 0x1f) return 0;
+	if(data[1] != 0x8b) return 0;
+	if(decompressed_data_len) {
+		uint8_t *p = data + data_len - 4;
+		*decompressed_data_len = p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24;
+	}
+	return 1;
+}
 #endif
 
 int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags)  {
@@ -159,24 +170,35 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 		if(!stream->z_data) return -3;
 		zip_uint64_t bytes_read = zip_fread(stream->f, stream->z_data, stream->stat.size);
 		if(bytes_read != stream->stat.size) return -4;
-
-		stream->z_stream.zalloc = 0;
-		stream->z_stream.zfree = 0;
-		stream->z_stream.opaque = 0;
-		stream->z_stream.avail_in = stream->stat.size;
-		stream->z_stream.next_in = (z_const Bytef *)stream->z_data;
-		stream->z_position = 0;
-		if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
-			return -5;
-		stream->stream.write = mem_stream_write_gz;
-		stream->stream.read = mem_stream_read_gz;
-		stream->stream.seek = mem_stream_seek_gz;
-		stream->stream.eof  = mem_stream_eof_gz;
-		stream->stream.tell = mem_stream_tell_gz;
-		stream->stream.vprintf = mem_stream_vprintf_gz;
-		stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
-		stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
-		stream->stream.close = mem_stream_close_gz;
+		if(check_gzip_data(stream->z_data, stream->stat.size, &stream->decompressed_data_len)) {
+			stream->z_stream.zalloc = 0;
+			stream->z_stream.zfree = 0;
+			stream->z_stream.opaque = 0;
+			stream->z_stream.avail_in = stream->stat.size;
+			stream->z_stream.next_in = (z_const Bytef *)stream->z_data;
+			stream->z_position = 0;
+			if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
+				return -5;
+			stream->stream.write = mem_stream_write_gz;
+			stream->stream.read = mem_stream_read_gz;
+			stream->stream.seek = mem_stream_seek_gz;
+			stream->stream.eof  = mem_stream_eof_gz;
+			stream->stream.tell = mem_stream_tell_gz;
+			stream->stream.vprintf = mem_stream_vprintf_gz;
+			stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
+			stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
+			stream->stream.close = mem_stream_close_gz;
+		} else {
+			stream->stream.read = zip_file_stream_read;
+			stream->stream.write = zip_file_stream_write;
+			stream->stream.seek = zip_file_stream_seek;
+			stream->stream.eof = zip_file_stream_eof;
+			stream->stream.tell = zip_file_stream_tell;
+			stream->stream.vprintf = zip_file_stream_vprintf;
+			stream->stream.get_memory_access = zip_file_stream_get_memory_access;
+			stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
+			stream->stream.close = zip_file_stream_close;
+		}
 	} else {
 #endif
 		stream->stream.read = zip_file_stream_read;
