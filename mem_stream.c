@@ -156,9 +156,9 @@ static int mem_stream_revoke_memory_access_gz(struct stream *stream) {
 static int mem_stream_close_gz(struct stream *stream) {
 	struct mem_stream *mem_stream = (struct mem_stream *)stream;
 	inflateEnd(&mem_stream->z_stream);
+	if(mem_stream->allocated_len >= 0) free(mem_stream->data);
 	return 0;
 }
-#endif
 
 static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_data_len) {
 	if(data_len < 20) return 0;
@@ -170,6 +170,7 @@ static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_
 	}
 	return 1;
 }
+#endif
 
 int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t existing_data_len, int stream_flags) {
 	stream_init(&stream->stream, stream_flags);
