@@ -1,6 +1,6 @@
 # StreamLib
 
-![Build and tests](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml/badge.svg)
+[![Build and tests](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml)
 
 Streaming I/O for stdio, memory blocks and files in zip archives. Supports memory mapping where available, and transparent gzip decompression.
 
