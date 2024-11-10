@@ -7,15 +7,31 @@
 #include <zip.h>
 #endif
 
-// stream flags
+// stream init flags
+#define STREAM_ENSURE_REWIND            (1 <<  1)
+#define STREAM_ENSURE_SEEK_SET          (1 <<  2)
+#define STREAM_ENSURE_SEEK_CUR_FORWARD  (1 <<  3)
+#define STREAM_ENSURE_SEEK_CUR_BACKWARD (1 <<  4)
+#define STREAM_ENSURE_SEEK_END          (1 <<  5)
+#define STREAM_ENSURE_FAST_SEEK         (1 <<  6)
+#define STREAM_ENSURE_MMAP              (1 <<  7)
 #ifdef HAVE_GZIP
-#define STREAM_TRANSPARENT_GZIP     (1 << 0)
+#define STREAM_TRANSPARENT_GZIP         (1 <<  8)
 #endif
-#define STREAM_ENSURE_SEEK_SET      (1 << 1)
-#define STREAM_ENSURE_SEEK_START    (1 << 2)
-#define STREAM_ENSURE_SEEK_END      (1 << 3)
-#define STREAM_ENSURE_MEMORY_ACCESS (1 << 4)
-#define STREAM_ENSURE_FAST_SEEK     (1 << 5)
+
+// stream info flags
+#define STREAM_IS_GZIPPED               (1 << 16)
+#define STREAM_CAN_READ                 (1 << 17)
+#define STREAM_CAN_WRITE                (1 << 18)
+#define STREAM_CAN_REWIND               (1 << 19)
+#define STREAM_CAN_SEEK_SET             (1 << 19)
+#define STREAM_CAN_SEEK_CUR_FORWARD     (1 << 20)
+#define STREAM_CAN_SEEK_CUR_BACKWARD    (1 << 21)
+#define STREAM_CAN_SEEK_END             (1 << 22)
+#define STREAM_CAN_TELL                 (1 << 23)
+#define STREAM_CAN_EOF                  (1 << 24)
+#define STREAM_CAN_MMAP                 (1 << 25)
+#define STREAM_IS_MMAPPED               (1 << 26)
 
 struct stream {
 	int _errno;
