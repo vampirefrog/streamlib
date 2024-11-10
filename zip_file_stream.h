@@ -4,7 +4,7 @@
 #include <zlib.h>
 #endif
 
-#include "stream.h"
+#include "stream_base.h"
 
 #ifdef HAVE_LIBZIP
 /**

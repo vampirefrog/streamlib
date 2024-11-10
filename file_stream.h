@@ -3,7 +3,7 @@
 #include <zlib.h>
 #endif
 
-#include "stream.h"
+#include "stream_base.h"
 
 /**
  * @struct file_stream

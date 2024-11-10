@@ -4,7 +4,7 @@
 #include <zlib.h>
 #endif
 
-#include "stream.h"
+#include "stream_base.h"
 
 /**
  * @struct mem_stream
