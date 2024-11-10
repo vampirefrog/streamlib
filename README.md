@@ -1,6 +1,6 @@
 # StreamLib
 
-[![Build and tests](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/build-and-tests.yml)
+[![Linux Build](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml) [![MSYS2 MINGW64 Build](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml)
 
 Streaming I/O for stdio, memory blocks and files in zip archives. Supports memory mapping where available, and transparent gzip decompression.
 
