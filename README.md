@@ -1,6 +1,6 @@
 # StreamLib
 
-![Project status](https://img.shields.io/badge/Project%20status-Alpha-blue.svg) [![GitHub latest commit](https://badgen.net/github/last-commit/vampirefrog/streamlib)](https://GitHub.com/vampirefrog/streamlib/commit/) [![GitHub release](https://img.shields.io/github/release/vampirefrog/streamlib.svg)](https://GitHub.com/vampirefrog/streamlib/releases/)
+![Project status](https://img.shields.io/badge/Project%20status-Alpha-blue.svg) [![GitHub latest commit](https://badgen.net/github/last-commit/vampirefrog/streamlib)](https://GitHub.com/vampirefrog/streamlib/commit/) [![GitHub release](https://img.shields.io/github/release/vampirefrog/streamlib.svg)](https://GitHub.com/vampirefrog/streamlib/releases/) ![License](https://img.shields.io/github/license/vampirefrog/streamlib?color=green)
 
 [![MSYS2 MINGW64 Build](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml) [![MacOS Build](https://github.com/vampirefrog/streamlib/actions/workflows/macos.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/macos.yml) [![Linux Build](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml)
 
