@@ -4,6 +4,9 @@
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#endif
 #ifdef WIN32
 #include <windows.h>
 #include <fcntl.h>
