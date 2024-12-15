@@ -35,14 +35,15 @@ Streaming I/O for stdio, memory blocks and files in zip archives. Supports memor
 # Building
 
 1. Clone the repository:
-
     ```sh
     git clone https://github.com/vampirefrog/streamlib.git
     cd streamlib
     ```
-
-2. Compile the library:
-
+2. Install dependencies:
+    ```sh
+    sudo apt install libzip-dev zlib1g-dev
+    ```
+3. Compile the library:
     ```sh
     make HAVE_LIBZIP=1 HAVE_GZIP=1
     ```
