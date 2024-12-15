@@ -6,31 +6,26 @@
 
 Streaming I/O for stdio, memory blocks and files in zip archives. Supports memory mapping where available, and transparent gzip decompression.
 
-| module   |    | gzip | open | read | write | seek | eof | tell | mmap | munmap | close |
-|----------|----|------|------|------|-------|------|-----|------|------|--------|-------|
-| mem      | R  | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-|          | R  | yes  | ☑️   | ☑️   | ⛔    | ☑️³  | ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
-|          | W  | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | W  | yes  | ☑️   | ⛔   | ☑️    | ☑️¹  | ⛔  | ☑️   | ⛔   | ⛔     | ☑️    |
-|          | RW | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | RW | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-| file     | R  | no   | ☑️   | ☑️   | ⛔    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | R  | yes  | ☑️   | ☑️   | ⛔    | ☑️³  | ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
-|          | W  | no   | ☑️   | ⛔   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | W  | yes  | ☑️   | ⛔   | ☑️    | ☑️¹  | ⛔  | ☑️   | ⛔   | ⛔     | ☑️    |
-|          | RW | no   | ☑️   | ☑️   | ☑️    | ☑️   | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | RW | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-| zip_file | R  | no   | ☑️   | ☑️   | ⛔    | ☑️⁴  | ☑️  | ☑️   | ☑️   | ☑️     | ☑️    |
-|          | R  | yes  | ☑️   | ☑️   | ⛔    | ☑️³ʼ⁴| ☑️  | ☑️   | ☑️²  | ☑️²    | ☑️    |
-|          | W  | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-|          | W  | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-|          | RW | no   | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-|          | RW | yes  | ⛔   | ⛔   | ⛔    | ⛔   | ⛔  | ⛔   | ⛔   | ⛔     | ⛔    |
-
-1. [Forward only](https://www.zlib.net/manual.html#Gzip)
-2. Slurp into memory block
-3. [Slow](https://www.zlib.net/manual.html#Gzip)
-4. [Uncompressed data only](https://libzip.org/documentation/zip_fseek.html#DESCRIPTION)
+| module   |    | gzip | open | read | write | seek       | eof | tell | mmap  | munmap | close |
+|----------|----|------|------|------|-------|------------|-----|------|-------|--------|-------|
+| mem      | R  | no   | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+|          | R  | yes  | ☑️   | ☑️   | ⛔     | ☑️[^3]     | ☑️  | ☑️   | ☑️[^2] | ☑️[^2]  | ☑️    |
+|          | W  | no   | ☑️   | ☑️   | ☑️     | ☑️         | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | W  | yes  | ☑️   | ⛔   | ☑️     | ☑️[^1]     | ⛔  | ☑️   | ⛔     | ⛔      | ☑️    |
+|          | RW | no   | ☑️   | ☑️   | ☑️     | ☑️         | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | RW | yes  | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+| file     | R  | no   | ☑️   | ☑️   | ⛔     | ☑️         | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | R  | yes  | ☑️   | ☑️   | ⛔     | ☑️[^3]     | ☑️  | ☑️   | ☑️[^2] | ☑️[^2]  | ☑️    |
+|          | W  | no   | ☑️   | ⛔   | ☑️     | ☑️         | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | W  | yes  | ☑️   | ⛔   | ☑️     | ☑️[^1]     | ⛔  | ☑️   | ⛔     | ⛔      | ☑️    |
+|          | RW | no   | ☑️   | ☑️   | ☑️     | ☑️         | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | RW | yes  | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+| zip_file | R  | no   | ☑️   | ☑️   | ⛔     | ☑️[^4]     | ☑️  | ☑️   | ☑️     | ☑️      | ☑️    |
+|          | R  | yes  | ☑️   | ☑️   | ⛔     | ☑️[^3][^4] | ☑️  | ☑️   | ☑️[^2] | ☑️[^2]  | ☑️    |
+|          | W  | no   | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+|          | W  | yes  | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+|          | RW | no   | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
+|          | RW | yes  | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
 
 # Building
 
@@ -47,3 +42,8 @@ Streaming I/O for stdio, memory blocks and files in zip archives. Supports memor
     ```sh
     make HAVE_LIBZIP=1 HAVE_GZIP=1
     ```
+
+[^1]: [Forward only](https://www.zlib.net/manual.html#Gzip)
+[^2]: Slurp into memory block
+[^3]: [Slow](https://www.zlib.net/manual.html#Gzip)
+[^4]: [Uncompressed data only](https://libzip.org/documentation/zip_fseek.html#DESCRIPTION)
