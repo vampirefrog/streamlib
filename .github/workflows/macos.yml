@@ -1,0 +1,20 @@
+name: macOS Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Install deps
+        run: brew install libzip zlib
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make HAVE_LIBZIP=1 HAVE_GZIP=1
