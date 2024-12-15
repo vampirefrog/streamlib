@@ -2,7 +2,7 @@
 
 ![Project status](https://img.shields.io/badge/Project%20status-Alpha-blue.svg)
 
-[![GitHub latest commit](https://badgen.net/github/last-commit/vampirefrog/streamlib)](https://GitHub.com/vampirefrog/streamlib/commit/) [![GitHub release](https://img.shields.io/github/release/vampirefrog/streamlib.svg)](https://GitHub.com/vampirefrog/streamlib/releases/) [![Linux Build](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml) [![MSYS2 MINGW64 Build](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml)
+[![GitHub latest commit](https://badgen.net/github/last-commit/vampirefrog/streamlib)](https://GitHub.com/vampirefrog/streamlib/commit/) [![GitHub release](https://img.shields.io/github/release/vampirefrog/streamlib.svg)](https://GitHub.com/vampirefrog/streamlib/releases/) [![MSYS2 MINGW64 Build](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/msys2-mingw64.yml) [![MacOS Build](https://github.com/vampirefrog/streamlib/actions/workflows/macos.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/macos.yml) [![Linux Build](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml/badge.svg)](https://github.com/vampirefrog/streamlib/actions/workflows/linux.yml)
 
 Streaming I/O for stdio, memory blocks and files in zip archives. Supports memory mapping where available, and transparent gzip decompression.
 
