@@ -36,10 +36,10 @@ Streaming I/O for stdio, memory blocks and files in zip archives. Supports memor
 
 1. Clone the repository:
 
-```sh
-git clone https://github.com/vampirefrog/streamlib.git
-cd streamlib
-```
+    ```sh
+    git clone https://github.com/vampirefrog/streamlib.git
+    cd streamlib
+    ```
 
 2. Compile the library:
 
