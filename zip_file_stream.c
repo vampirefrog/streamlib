@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #ifdef HAVE_GZIP
 #include <zlib.h>
 #endif
@@ -153,24 +155,172 @@ static int check_gzip_data(uint8_t *data, size_t data_len, size_t *decompressed_
 }
 #endif
 
+static ssize_t zip_file_stream_mem_read(struct stream *stream, void *ptr, size_t size) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	if (zip_file_stream->mem_offset >= zip_file_stream->mem_length)
+		return 0;
+	size_t remain = zip_file_stream->mem_length - zip_file_stream->mem_offset;
+	if (size > remain)
+		size = remain;
+	memcpy(ptr, (uint8_t*)zip_file_stream->mem_ptr + zip_file_stream->mem_offset, size);
+	zip_file_stream->mem_offset += size;
+	return size;
+}
+
+static size_t zip_file_stream_mem_seek(struct stream *stream, long offset, int whence) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	size_t new_offset = 0;
+	switch (whence) {
+		case SEEK_SET:
+			new_offset = offset;
+			break;
+		case SEEK_CUR:
+			new_offset = zip_file_stream->mem_offset + offset;
+			break;
+		case SEEK_END:
+			new_offset = zip_file_stream->mem_length + offset;
+			break;
+		default:
+			return (size_t)-1;
+	}
+	if (new_offset > zip_file_stream->mem_length)
+		return (size_t)-1;
+	zip_file_stream->mem_offset = new_offset;
+	return new_offset;
+}
+
+static int zip_file_stream_mem_eof(struct stream *stream) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	return zip_file_stream->mem_offset >= zip_file_stream->mem_length;
+}
+
+static long zip_file_stream_mem_tell(struct stream *stream) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	return zip_file_stream->mem_offset;
+}
+
+static int zip_file_stream_mem_close(struct stream *stream) {
+	struct zip_file_stream *zip_file_stream = (struct zip_file_stream *)stream;
+	if (zip_file_stream->mem_ptr) {
+		free(zip_file_stream->mem_ptr);
+		zip_file_stream->mem_ptr = NULL;
+	}
+	return 0;
+}
+
 int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags)  {
 	stream_init(&stream->stream, stream_flags);
 
 	int r = zip_stat_index(zip, index, ZIP_STAT_SIZE, &stream->stat);
 	stream->stream._errno = zip_error_code_system(zip_get_error(zip));
-	if(r) return r;
+	if(r) return ZIPFS_ERR_STAT;
 
 	stream->f = zip_fopen_index(zip, index, 0);
 	stream->stream._errno = zip_error_code_system(zip_get_error(zip));
-	if(!stream->f) return -1;
+	if(!stream->f) return ZIPFS_ERR_OPEN;
+
+#ifdef HAVE_GZIP
+	if ((stream_flags & STREAM_ENSURE_MMAP) && (stream_flags & STREAM_TRANSPARENT_GZIP)) {
+		// Read the compressed data into z_data
+		stream->z_data = malloc(stream->stat.size);
+		if(!stream->z_data) return ZIPFS_ERR_MALLOC;
+		int rr = zip_fread(stream->f, stream->z_data, stream->stat.size);
+		if(rr < 0) {
+			free(stream->z_data);
+			return ZIPFS_ERR_READ;
+		}
+		// Check if it's a gzip stream
+		if(check_gzip_data(stream->z_data, stream->stat.size, &stream->decompressed_data_len)) {
+			// Decompress entire file into memory (mmap-like)
+			void *mem = malloc(stream->decompressed_data_len);
+			if(!mem) {
+				free(stream->z_data);
+				return ZIPFS_ERR_MALLOC;
+			}
+			z_stream zstr;
+			memset(&zstr, 0, sizeof(zstr));
+			zstr.zalloc = 0;
+			zstr.zfree = 0;
+			zstr.opaque = 0;
+			zstr.avail_in = stream->stat.size;
+			zstr.next_in = (z_const Bytef *)stream->z_data;
+			zstr.avail_out = stream->decompressed_data_len;
+			zstr.next_out = (Bytef *)mem;
+			if(inflateInit2(&zstr, 0x20 | 15) != Z_OK) {
+				free(stream->z_data);
+				free(mem);
+				return ZIPFS_ERR_ZLIB_INIT;
+			}
+			int ret = inflate(&zstr, Z_FINISH);
+			inflateEnd(&zstr);
+			if(ret != Z_STREAM_END || zstr.total_out != stream->decompressed_data_len) {
+				free(stream->z_data);
+				free(mem);
+				return ZIPFS_ERR_ZLIB_DECOMP;
+			}
+			free(stream->z_data);
+			stream->z_data = NULL;
+			stream->mem_ptr = mem;
+			stream->mem_length = stream->decompressed_data_len;
+			stream->mem_offset = 0;
+			stream->stream.read = zip_file_stream_mem_read;
+			stream->stream.write = zip_file_stream_write;
+			stream->stream.seek = zip_file_stream_mem_seek;
+			stream->stream.eof = zip_file_stream_mem_eof;
+			stream->stream.tell = zip_file_stream_mem_tell;
+			stream->stream.vprintf = zip_file_stream_vprintf;
+			stream->stream.get_memory_access = zip_file_stream_get_memory_access;
+			stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
+			stream->stream.close = zip_file_stream_mem_close;
+			return ZIPFS_OK;
+		} else {
+			free(stream->z_data);
+			stream->z_data = NULL;
+			// fallback to normal mmap logic below
+		}
+	}
+#endif
+
+	// --- STREAM_ENSURE_MMAP logic ---
+	if (stream_flags & STREAM_ENSURE_MMAP) {
+		// Read the whole file into memory
+		stream->mem_ptr = malloc(stream->stat.size);
+		if (!stream->mem_ptr) return ZIPFS_ERR_MALLOC;
+		int rr = zip_fseek(stream->f, 0, SEEK_SET);
+		if (rr) {
+			free(stream->mem_ptr);
+			return ZIPFS_ERR_READ;
+		}
+		rr = zip_fread(stream->f, stream->mem_ptr, stream->stat.size);
+		if (rr < 0) {
+			free(stream->mem_ptr);
+			return ZIPFS_ERR_READ;
+		}
+		stream->mem_length = stream->stat.size;
+		stream->mem_offset = 0;
+		stream->stream.read = zip_file_stream_mem_read;
+		stream->stream.write = zip_file_stream_write;
+		stream->stream.seek = zip_file_stream_mem_seek;
+		stream->stream.eof = zip_file_stream_mem_eof;
+		stream->stream.tell = zip_file_stream_mem_tell;
+		stream->stream.vprintf = zip_file_stream_vprintf;
+		stream->stream.get_memory_access = zip_file_stream_get_memory_access;
+		stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
+		stream->stream.close = zip_file_stream_mem_close;
+		return ZIPFS_OK;
+	}
+	// --- end STREAM_ENSURE_MMAP logic ---
 
 #ifdef HAVE_GZIP
 	if(stream_flags & STREAM_TRANSPARENT_GZIP) {
+		// Read the compressed data into z_data
 		stream->z_data = malloc(stream->stat.size);
-		if(!stream->z_data) return -3;
+		if(!stream->z_data) return ZIPFS_ERR_MALLOC;
 		zip_uint64_t bytes_read = zip_fread(stream->f, stream->z_data, stream->stat.size);
-		if(bytes_read != stream->stat.size) return -4;
+		if(bytes_read != stream->stat.size) return ZIPFS_ERR_READ;
+		// Check if it's a gzip stream
 		if(check_gzip_data(stream->z_data, stream->stat.size, &stream->decompressed_data_len)) {
+			// Setup z_stream for decompression
 			stream->z_stream.zalloc = 0;
 			stream->z_stream.zfree = 0;
 			stream->z_stream.opaque = 0;
@@ -178,7 +328,8 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 			stream->z_stream.next_in = (z_const Bytef *)stream->z_data;
 			stream->z_position = 0;
 			if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
-				return -5;
+				return ZIPFS_ERR_ZLIB_INIT;
+			// Set up stream methods for gzip decompression
 			stream->stream.write = mem_stream_write_gz;
 			stream->stream.read = mem_stream_read_gz;
 			stream->stream.seek = mem_stream_seek_gz;
@@ -188,33 +339,25 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 			stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
 			stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
 			stream->stream.close = mem_stream_close_gz;
+			return ZIPFS_OK;
 		} else {
-			stream->stream.read = zip_file_stream_read;
-			stream->stream.write = zip_file_stream_write;
-			stream->stream.seek = zip_file_stream_seek;
-			stream->stream.eof = zip_file_stream_eof;
-			stream->stream.tell = zip_file_stream_tell;
-			stream->stream.vprintf = zip_file_stream_vprintf;
-			stream->stream.get_memory_access = zip_file_stream_get_memory_access;
-			stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
-			stream->stream.close = zip_file_stream_close;
+			free(stream->z_data);
+			stream->z_data = NULL;
 		}
-	} else {
-#endif
-		stream->stream.read = zip_file_stream_read;
-		stream->stream.write = zip_file_stream_write;
-		stream->stream.seek = zip_file_stream_seek;
-		stream->stream.eof = zip_file_stream_eof;
-		stream->stream.tell = zip_file_stream_tell;
-		stream->stream.vprintf = zip_file_stream_vprintf;
-		stream->stream.get_memory_access = zip_file_stream_get_memory_access;
-		stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
-		stream->stream.close = zip_file_stream_close;
-#ifdef HAVE_GZIP
 	}
 #endif
+	// Default: normal zip file stream
+	stream->stream.read = zip_file_stream_read;
+	stream->stream.write = zip_file_stream_write;
+	stream->stream.seek = zip_file_stream_seek;
+	stream->stream.eof = zip_file_stream_eof;
+	stream->stream.tell = zip_file_stream_tell;
+	stream->stream.vprintf = zip_file_stream_vprintf;
+	stream->stream.get_memory_access = zip_file_stream_get_memory_access;
+	stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
+	stream->stream.close = zip_file_stream_close;
 
-	return 0;
+	return ZIPFS_OK;
 }
 
 struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_flags) {
@@ -228,3 +371,29 @@ struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_fl
 	return (struct stream *)s;
 }
 #endif
+
+const char *zip_file_stream_strerror(int err) {
+	switch (err) {
+		case ZIPFS_OK: return "No error";
+		case ZIPFS_ERR_STAT: return "Failed to stat zip entry";
+		case ZIPFS_ERR_OPEN: return "Failed to open zip entry";
+		case ZIPFS_ERR_MALLOC: return "Memory allocation failed";
+		case ZIPFS_ERR_READ: return "Failed to read from zip entry";
+		case ZIPFS_ERR_NOT_GZIP: return "Not a gzip stream";
+		case ZIPFS_ERR_ZLIB_INIT: return "Failed to initialize zlib";
+		case ZIPFS_ERR_ZLIB_DECOMP: return "Failed to decompress gzip stream";
+		case ZIPFS_ERR_MMAP: return "Failed to memory map zip entry";
+		case ZIPFS_ERR_UNKNOWN: return "Unknown zip_file_stream error";
+		default:
+			// Handle libzip errors (negative values from libzip)
+#if defined(HAVE_LIBZIP)
+			if (err < 0 && err > -1000) {
+				// Use zip_error_strerror if available, otherwise fallback to strerror
+				// This requires a zip_error_t, but we only have the code.
+				// So, fallback to strerror for now.
+				return strerror(errno);
+			}
+#endif
+			return strerror(errno);
+	}
+}
