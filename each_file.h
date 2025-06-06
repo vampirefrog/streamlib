@@ -55,6 +55,15 @@ struct file_type_filterw {
 #define EF_TRANSPARENT_GZIP 0x08
 #endif
 
+#define EACHFILE_OK 0
+#define EACHFILE_ERR_OPEN    -1
+#define EACHFILE_ERR_STAT    -2
+#define EACHFILE_ERR_READDIR -3
+#define EACHFILE_ERR_CLOSE   -4
+#define EACHFILE_ERR_UNKNOWN -100
+
+const char *each_file_strerror(int err);
+
 int each_file(const char *path, struct file_type_filter *filters, int flags);
 #ifdef WIN32
 int each_filew(const wchar_t *path, struct file_type_filterw *filters, int flags);

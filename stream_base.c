@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <string.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -89,5 +91,10 @@ int stream_read_compare(struct stream *stream, const void *data, size_t len) {
 	int ret = !(stream_read(stream, buf, len) < (ssize_t)len || memcmp(buf, data, len));
 	free(buf);
 	return ret;
+}
+
+const char *stream_strerror(int err) {
+	// You can extend this if you have generic stream error codes
+	return strerror(err);
 }
 

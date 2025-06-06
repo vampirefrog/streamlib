@@ -17,15 +17,27 @@ static ssize_t mem_stream_read(struct stream *stream, void *ptr, size_t size) {
 	return read_len;
 }
 
+const char *mem_stream_strerror(int err) {
+	switch (err) {
+		case MEMFS_OK: return "No error";
+		case MEMFS_ERR_MALLOC: return "Memory allocation failed";
+		case MEMFS_ERR_RESIZE: return "Memory resize failed";
+		case MEMFS_ERR_ZLIB_INIT: return "Failed to initialize zlib";
+		case MEMFS_ERR_ZLIB_DECOMP: return "Failed to decompress gzip stream";
+		case MEMFS_ERR_UNKNOWN: return "Unknown mem_stream error";
+		default:
+			return strerror(errno);
+	}
+}
+
 static int mem_stream_reserve(struct mem_stream *stream, size_t len) {
 	if(stream->data_len + len > (size_t)stream->allocated_len) {
 		stream->allocated_len = (stream->data_len + len + 1023) & ~0x3ff;
 		stream->data = realloc(stream->data, stream->allocated_len);
 		if(!stream->data)
-			return -1;
+			return MEMFS_ERR_RESIZE;
 	}
-
-	return 0;
+	return MEMFS_OK;
 }
 
 static ssize_t mem_stream_write(struct stream *stream, const void *ptr, size_t size) {
@@ -185,8 +197,6 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 		stream->data = 0;
 	}
 #ifdef HAVE_GZIP
-	// Smallest gzip file is 20 bytes from my experiments:
-	// echo -n "" | gzip | hd
 	if(stream_flags & STREAM_TRANSPARENT_GZIP && check_gzip_data(stream->data, stream->data_len, &stream->decompressed_data_len)) {
 		stream->z_stream.zalloc = 0;
 		stream->z_stream.zfree = 0;
@@ -194,7 +204,7 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 		stream->z_stream.avail_in = stream->data_len;
 		stream->z_stream.next_in = (z_const Bytef *)stream->data;
 		if(inflateInit2(&stream->z_stream, 0x20 | 15) != Z_OK)
-			return 1;
+			return MEMFS_ERR_ZLIB_INIT;
 		stream->stream.write = mem_stream_write_gz;
 		stream->stream.read = mem_stream_read_gz;
 		stream->stream.seek = mem_stream_seek_gz;
@@ -218,7 +228,7 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 #ifdef HAVE_GZIP
 	}
 #endif
-	return 0;
+	return MEMFS_OK;
 }
 
 struct stream *mem_stream_new(void *existing_data, size_t existing_data_len, int stream_flags) {

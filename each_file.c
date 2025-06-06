@@ -15,9 +15,22 @@
 
 #include "each_file.h"
 
+const char *each_file_strerror(int err) {
+	switch (err) {
+		case EACHFILE_OK: return "No error";
+		case EACHFILE_ERR_OPEN: return "Failed to open directory or file";
+		case EACHFILE_ERR_STAT: return "Failed to stat file";
+		case EACHFILE_ERR_READDIR: return "Failed to read directory";
+		case EACHFILE_ERR_CLOSE: return "Failed to close directory";
+		case EACHFILE_ERR_UNKNOWN: return "Unknown each_file error";
+		default:
+			return strerror(errno);
+	}
+}
+
 static int each_file_dir(const char *path, struct file_type_filter *filters, int flags) {
 	DIR *d = opendir(path);
-	if(!d) return errno;
+	if(!d) return EACHFILE_ERR_OPEN;
 	struct dirent *de;
 	while((de = readdir(d))) {
 		if(de->d_name[0] == '.' && de->d_name[1] == 0) continue;
@@ -29,8 +42,8 @@ static int each_file_dir(const char *path, struct file_type_filter *filters, int
 			snprintf(rpath, sizeof(rpath) / sizeof(rpath[0]), "%s", de->d_name);
 		each_file(rpath, filters, flags);
 	}
-	if(closedir(d)) return errno;
-	return 0;
+	if(closedir(d)) return EACHFILE_ERR_CLOSE;
+	return EACHFILE_OK;
 }
 
 #ifdef WIN32
@@ -93,11 +106,11 @@ static int each_file_zip(const char *path, struct file_type_filter *filters, int
 	(void)flags;
 	int err;
 	zip_t *z = zip_open(path, ZIP_RDONLY, &err);
-	if(!z) return err;
+	if(!z) return EACHFILE_ERR_OPEN;
 	int num_entries = zip_get_num_entries(z, 0);
 	if(num_entries < 0) {
 		zip_close(z);
-		return -1;
+		return EACHFILE_ERR_READDIR;
 	}
 	struct path_info p;
 	p.zip_file_name = (char *)path;

@@ -68,3 +68,4 @@ ssize_t stream_write_big_uint16(struct stream *stream, uint16_t i);
 ssize_t stream_write_big_uint32(struct stream *stream, uint32_t i);
 int stream_printf(struct stream *stream, const char *fmt, ...);
 int stream_read_compare(struct stream *stream, const void *data, size_t len);
+const char *stream_strerror(int err);

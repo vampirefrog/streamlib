@@ -18,5 +18,13 @@ struct mem_stream {
 #endif
 };
 
+#define MEMFS_OK 0
+#define MEMFS_ERR_MALLOC    -1
+#define MEMFS_ERR_RESIZE    -2
+#define MEMFS_ERR_ZLIB_INIT -3
+#define MEMFS_ERR_ZLIB_DECOMP -4
+#define MEMFS_ERR_UNKNOWN   -100
+
 int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_len, int stream_flags);
 struct stream *mem_stream_new(void *existing_data, size_t existing_data_len, int stream_flags);
+const char *mem_stream_strerror(int err);
