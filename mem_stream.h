@@ -27,4 +27,3 @@ struct mem_stream {
 
 int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t data_len, int stream_flags);
 struct stream *mem_stream_new(void *existing_data, size_t existing_data_len, int stream_flags);
-const char *mem_stream_strerror(int err);

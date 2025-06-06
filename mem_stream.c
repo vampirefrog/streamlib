@@ -17,7 +17,8 @@ static ssize_t mem_stream_read(struct stream *stream, void *ptr, size_t size) {
 	return read_len;
 }
 
-const char *mem_stream_strerror(int err) {
+static const char *mem_stream_strerror(struct stream *s, int err) {
+	(void)s; // Unused parameter
 	switch (err) {
 		case MEMFS_OK: return "No error";
 		case MEMFS_ERR_MALLOC: return "Memory allocation failed";
@@ -26,7 +27,7 @@ const char *mem_stream_strerror(int err) {
 		case MEMFS_ERR_ZLIB_DECOMP: return "Failed to decompress gzip stream";
 		case MEMFS_ERR_UNKNOWN: return "Unknown mem_stream error";
 		default:
-			return strerror(errno);
+			return strerror(err);
 	}
 }
 
@@ -214,6 +215,7 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 		stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
 		stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
 		stream->stream.close = mem_stream_close_gz;
+		stream->stream.strerror = mem_stream_strerror;
 	} else {
 #endif
 		stream->stream.write = mem_stream_write;
@@ -225,6 +227,7 @@ int mem_stream_init(struct mem_stream *stream, void *existing_data, size_t exist
 		stream->stream.get_memory_access = mem_stream_get_memory_access;
 		stream->stream.revoke_memory_access = mem_stream_revoke_memory_access;
 		stream->stream.close = mem_stream_close;
+		stream->stream.strerror = mem_stream_strerror;
 #ifdef HAVE_GZIP
 	}
 #endif

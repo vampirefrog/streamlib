@@ -208,6 +208,24 @@ static int zip_file_stream_mem_close(struct stream *stream) {
 	return 0;
 }
 
+static const char *zip_file_stream_strerror(struct stream *s, int err) {
+	(void)s; // Unused parameter
+	switch (err) {
+		case ZIPFS_OK: return "No error";
+		case ZIPFS_ERR_STAT: return "Failed to stat zip entry";
+		case ZIPFS_ERR_OPEN: return "Failed to open zip entry";
+		case ZIPFS_ERR_MALLOC: return "Memory allocation failed";
+		case ZIPFS_ERR_READ: return "Failed to read from zip entry";
+		case ZIPFS_ERR_NOT_GZIP: return "Not a gzip stream";
+		case ZIPFS_ERR_ZLIB_INIT: return "Failed to initialize zlib";
+		case ZIPFS_ERR_ZLIB_DECOMP: return "Failed to decompress gzip stream";
+		case ZIPFS_ERR_MMAP: return "Failed to memory map zip entry";
+		case ZIPFS_ERR_UNKNOWN: return "Unknown zip_file_stream error";
+		default:
+			return "Unknown error";
+	}
+}
+
 int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int index, int stream_flags)  {
 	stream_init(&stream->stream, stream_flags);
 
@@ -272,6 +290,7 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 			stream->stream.get_memory_access = zip_file_stream_get_memory_access;
 			stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
 			stream->stream.close = zip_file_stream_mem_close;
+			stream->stream.strerror = zip_file_stream_strerror;
 			return ZIPFS_OK;
 		} else {
 			free(stream->z_data);
@@ -307,6 +326,7 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 		stream->stream.get_memory_access = zip_file_stream_get_memory_access;
 		stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
 		stream->stream.close = zip_file_stream_mem_close;
+		stream->stream.strerror = zip_file_stream_strerror;
 		return ZIPFS_OK;
 	}
 	// --- end STREAM_ENSURE_MMAP logic ---
@@ -339,6 +359,7 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 			stream->stream.get_memory_access = mem_stream_get_memory_access_gz;
 			stream->stream.revoke_memory_access = mem_stream_revoke_memory_access_gz;
 			stream->stream.close = mem_stream_close_gz;
+			stream->stream.strerror = zip_file_stream_strerror;
 			return ZIPFS_OK;
 		} else {
 			free(stream->z_data);
@@ -356,6 +377,7 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
 	stream->stream.get_memory_access = zip_file_stream_get_memory_access;
 	stream->stream.revoke_memory_access = zip_file_stream_revoke_memory_access;
 	stream->stream.close = zip_file_stream_close;
+	stream->stream.strerror = zip_file_stream_strerror;
 
 	return ZIPFS_OK;
 }
@@ -371,29 +393,3 @@ struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_fl
 	return (struct stream *)s;
 }
 #endif
-
-const char *zip_file_stream_strerror(int err) {
-	switch (err) {
-		case ZIPFS_OK: return "No error";
-		case ZIPFS_ERR_STAT: return "Failed to stat zip entry";
-		case ZIPFS_ERR_OPEN: return "Failed to open zip entry";
-		case ZIPFS_ERR_MALLOC: return "Memory allocation failed";
-		case ZIPFS_ERR_READ: return "Failed to read from zip entry";
-		case ZIPFS_ERR_NOT_GZIP: return "Not a gzip stream";
-		case ZIPFS_ERR_ZLIB_INIT: return "Failed to initialize zlib";
-		case ZIPFS_ERR_ZLIB_DECOMP: return "Failed to decompress gzip stream";
-		case ZIPFS_ERR_MMAP: return "Failed to memory map zip entry";
-		case ZIPFS_ERR_UNKNOWN: return "Unknown zip_file_stream error";
-		default:
-			// Handle libzip errors (negative values from libzip)
-#if defined(HAVE_LIBZIP)
-			if (err < 0 && err > -1000) {
-				// Use zip_error_strerror if available, otherwise fallback to strerror
-				// This requires a zip_error_t, but we only have the code.
-				// So, fallback to strerror for now.
-				return strerror(errno);
-			}
-#endif
-			return strerror(errno);
-	}
-}

@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <string.h>
 #ifdef WIN32
 #include <windows.h>
 #include <fcntl.h>
@@ -105,6 +106,15 @@ static int file_stream_close(struct stream *stream) {
 	return r;
 }
 
+static const char *file_stream_strerror(struct stream *s, int err) {
+	(void)s; // Unused parameter
+	switch (err) {
+		// Add any file_stream-specific error codes here if needed
+		default:
+			return strerror(err);
+	}
+}
+
 static int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	stream->f = f;
 	stream->stream.read = file_stream_read;
@@ -116,6 +126,8 @@ static int file_stream_init_fp(struct file_stream *stream, FILE *f) {
 	stream->stream.get_memory_access = file_stream_get_memory_access;
 	stream->stream.revoke_memory_access = file_stream_revoke_memory_access;
 	stream->stream.close = file_stream_close;
+	stream->stream.strerror = file_stream_strerror;
+
 	return 0;
 }
 
@@ -190,6 +202,8 @@ static int file_stream_init_gz(struct file_stream *stream, gzFile gz) {
 	stream->stream.get_memory_access = file_stream_get_memory_access_gz;
 	stream->stream.revoke_memory_access = file_stream_revoke_memory_access_gz;
 	stream->stream.close = file_stream_close_gz;
+	stream->stream.strerror = file_stream_strerror;
+
 	return 0;
 }
 #endif

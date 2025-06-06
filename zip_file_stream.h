@@ -54,7 +54,4 @@ struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_fl
 #define ZIPFS_ERR_ZLIB_DECOMP  -7
 #define ZIPFS_ERR_MMAP         -8
 #define ZIPFS_ERR_UNKNOWN      -100
-
-// Returns a human-readable string for a zip_file_stream error code
-const char *zip_file_stream_strerror(int err);
 #endif

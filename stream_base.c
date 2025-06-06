@@ -46,6 +46,10 @@ int stream_revoke_memory_access(struct stream *stream) {
 	return stream->revoke_memory_access(stream);
 }
 
+const char *stream_strerror(struct stream *stream, int err) {
+	return stream->strerror(stream, err);
+}
+
 int stream_close(struct stream *stream) {
 	return stream->close(stream);
 }
@@ -92,9 +96,3 @@ int stream_read_compare(struct stream *stream, const void *data, size_t len) {
 	free(buf);
 	return ret;
 }
-
-const char *stream_strerror(int err) {
-	// You can extend this if you have generic stream error codes
-	return strerror(err);
-}
-
