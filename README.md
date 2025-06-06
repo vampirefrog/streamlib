@@ -6,6 +6,8 @@
 
 Streaming I/O for stdio, memory blocks and files in zip archives. Supports memory mapping where available, and transparent gzip decompression.
 
+Meant to be used in [midilib](https://github.com/vampirefrog/midilib), [libfmvoice](https://github.com/vampirefrog/libfmvoice), [mdxtools](https://github.com/vampirefrog/mdxtools), [vgm2x](https://github.com/vampirefrog/vgm2x) and [vgmio](https://github.com/vampirefrog/vgmio).
+
 | module   |    | gzip | open | read | write | seek       | eof | tell | mmap  | munmap | close |
 |----------|----|------|------|------|-------|------------|-----|------|-------|--------|-------|
 | mem      | R  | no   | ⛔   | ⛔   | ⛔     | ⛔         | ⛔  | ⛔   | ⛔     | ⛔      | ⛔    |
