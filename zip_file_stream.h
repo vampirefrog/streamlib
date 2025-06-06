@@ -20,6 +20,9 @@ struct zip_file_stream {
 	z_stream z_stream;
 	size_t decompressed_data_len;
 #endif
+	void *mem_ptr; /**< Pointer to memory buffer for STREAM_ENSURE_MMAP */
+	size_t mem_length; /**< Length of the memory buffer for STREAM_ENSURE_MMAP */
+	size_t mem_offset; /**< Offset for memory-backed reads */
 	zip_stat_t stat; /**< Zip file statistics */
 };
 
@@ -39,4 +42,19 @@ int zip_file_stream_init_index(struct zip_file_stream *stream, zip_t *zip, int i
  * @return Pointer to the created zip file stream object.
  */
 struct stream *zip_file_stream_create_index(zip_t *zip, int index, int stream_flags);
+
+// Error codes for zip_file_stream
+#define ZIPFS_OK 0
+#define ZIPFS_ERR_STAT         -1
+#define ZIPFS_ERR_OPEN         -2
+#define ZIPFS_ERR_MALLOC       -3
+#define ZIPFS_ERR_READ         -4
+#define ZIPFS_ERR_NOT_GZIP     -5
+#define ZIPFS_ERR_ZLIB_INIT    -6
+#define ZIPFS_ERR_ZLIB_DECOMP  -7
+#define ZIPFS_ERR_MMAP         -8
+#define ZIPFS_ERR_UNKNOWN      -100
+
+// Returns a human-readable string for a zip_file_stream error code
+const char *zip_file_stream_strerror(int err);
 #endif
