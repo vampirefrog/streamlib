@@ -5,3 +5,5 @@
 tests/stream
 tests/each_file
 tests/test.txt
+tests/test_zip_file_stream_gz_mmap
+tests/test_zip_file_stream_mmap
