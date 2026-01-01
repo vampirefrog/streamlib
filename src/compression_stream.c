@@ -46,7 +46,7 @@ struct zstd_state {
 	union {
 		ZSTD_CStream *cstream;  /* Compression stream */
 		ZSTD_DStream *dstream;  /* Decompression stream */
-	};
+	} u;
 	int initialized;
 	int is_writing;
 };
@@ -204,26 +204,26 @@ static int init_codec(struct compression_stream *stream)
 		zs->is_writing = stream->is_writing;
 
 		if (stream->is_writing) {
-			zs->cstream = ZSTD_createCStream();
-			if (!zs->cstream) {
+			zs->u.cstream = ZSTD_createCStream();
+			if (!zs->u.cstream) {
 				free(zs);
 				return -ENOMEM;
 			}
-			size_t ret = ZSTD_initCStream(zs->cstream, 3);  /* compression level 3 */
+			size_t ret = ZSTD_initCStream(zs->u.cstream, 3);  /* compression level 3 */
 			if (ZSTD_isError(ret)) {
-				ZSTD_freeCStream(zs->cstream);
+				ZSTD_freeCStream(zs->u.cstream);
 				free(zs);
 				return -EIO;
 			}
 		} else {
-			zs->dstream = ZSTD_createDStream();
-			if (!zs->dstream) {
+			zs->u.dstream = ZSTD_createDStream();
+			if (!zs->u.dstream) {
 				free(zs);
 				return -ENOMEM;
 			}
-			size_t ret = ZSTD_initDStream(zs->dstream);
+			size_t ret = ZSTD_initDStream(zs->u.dstream);
 			if (ZSTD_isError(ret)) {
-				ZSTD_freeDStream(zs->dstream);
+				ZSTD_freeDStream(zs->u.dstream);
 				free(zs);
 				return -EIO;
 			}
@@ -459,7 +459,7 @@ static ssize_t compression_stream_read_impl(void *stream_ptr, void *buf,
 				input.size = nread;
 			}
 
-			size_t ret = ZSTD_decompressStream(zs->dstream, &output, &input);
+			size_t ret = ZSTD_decompressStream(zs->u.dstream, &output, &input);
 			if (ZSTD_isError(ret))
 				return -EIO;
 
@@ -606,7 +606,7 @@ static ssize_t compression_stream_write_impl(void *stream_ptr, const void *buf,
 				.pos = 0
 			};
 
-			size_t ret = ZSTD_compressStream(zs->cstream, &output, &input);
+			size_t ret = ZSTD_compressStream(zs->u.cstream, &output, &input);
 			if (ZSTD_isError(ret))
 				return -EIO;
 
@@ -824,7 +824,7 @@ static int compression_stream_close_impl(void *stream_ptr)
 			size_t ret;
 			do {
 				output.pos = 0;
-				ret = ZSTD_endStream(zs->cstream, &output);
+				ret = ZSTD_endStream(zs->u.cstream, &output);
 
 				if (output.pos > 0) {
 					stream_write(stream->underlying, stream->outbuf,
@@ -836,9 +836,9 @@ static int compression_stream_close_impl(void *stream_ptr)
 		/* Clean up zstd state */
 		if (zs->initialized) {
 			if (zs->is_writing)
-				ZSTD_freeCStream(zs->cstream);
+				ZSTD_freeCStream(zs->u.cstream);
 			else
-				ZSTD_freeDStream(zs->dstream);
+				ZSTD_freeDStream(zs->u.dstream);
 		}
 
 		free(zs);
