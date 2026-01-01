@@ -127,6 +127,7 @@ endif()
 
 if(STREAM_HAVE_ZSTD)
     target_include_directories(stream PUBLIC ${ZSTD_INCLUDE_DIRS})
+    target_link_directories(stream PUBLIC ${ZSTD_LIBRARY_DIRS})
     target_link_libraries(stream PUBLIC ${ZSTD_LIBRARIES})
 endif()
 
