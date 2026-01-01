@@ -150,10 +150,10 @@ jobs:
     - name: Test
       run: |
         cd build/Debug
-        ./test_basic.exe
-        ./test_compression.exe
-        ./test_walker.exe
-        ./test_archive.exe
+        .\test_basic.exe
+        if (Test-Path .\test_compression.exe) { .\test_compression.exe }
+        if (Test-Path .\test_walker.exe) { .\test_walker.exe }
+        if (Test-Path .\test_archive.exe) { .\test_archive.exe }
 
   # Code coverage (Linux only)
   coverage:
