@@ -11,6 +11,11 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+/* O_LARGEFILE is Linux-specific; on macOS/BSD large files are the default */
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
+
 /* Forward declarations */
 static ssize_t file_stream_read_impl(void *stream, void *buf, size_t count);
 static ssize_t file_stream_write_impl(void *stream, const void *buf, size_t count);
