@@ -12,4 +12,7 @@
 #cmakedefine STREAM_HAVE_ZSTD @STREAM_HAVE_ZSTD@
 #cmakedefine STREAM_HAVE_LIBARCHIVE @STREAM_HAVE_LIBARCHIVE@
 
+/* Helper macro: defined if ANY compression library is available */
+#cmakedefine STREAM_HAVE_COMPRESSION @STREAM_HAVE_COMPRESSION@
+
 #endif /* STREAM_CONFIG_H */

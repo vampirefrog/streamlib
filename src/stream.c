@@ -314,7 +314,7 @@ const char *stream_get_features_string(void)
  * TRANSPARENT DECOMPRESSION
  * ============================================================================ */
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 
 /* Prefetch stream for non-seekable streams (used internally) */
 struct prefetch_stream_internal {
@@ -507,7 +507,7 @@ struct stream *stream_auto_decompress(struct stream *source,
 	/* Detection failed - use source stream directly */
 	return source;
 }
-#endif /* STREAM_HAVE_ZLIB */
+#endif /* STREAM_HAVE_COMPRESSION */
 
 /* ============================================================================
  * BINARY I/O HELPERS

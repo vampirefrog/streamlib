@@ -456,7 +456,7 @@ const void *mem_stream_get_buffer(struct mem_stream *stream, size_t *size);
  * COMPRESSION API
  * ============================================================================ */
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 
 /* Initialize compression stream with specific format */
 int compression_stream_init(struct compression_stream *stream,
@@ -502,7 +502,7 @@ int compression_stream_auto(struct compression_stream *stream,
 struct stream *stream_auto_decompress(struct stream *source,
                                        struct compression_stream *cs_storage,
                                        int owns_source);
-#endif /* STREAM_HAVE_ZLIB */
+#endif /* STREAM_HAVE_COMPRESSION */
 
 /* ============================================================================
  * ARCHIVE API (Low-level)

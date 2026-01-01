@@ -23,6 +23,7 @@ set(STREAM_HAVE_BZIP2 0)
 set(STREAM_HAVE_LZMA 0)
 set(STREAM_HAVE_ZSTD 0)
 set(STREAM_HAVE_LIBARCHIVE 0)
+set(STREAM_HAVE_COMPRESSION 0)
 
 if(STREAM_ENABLE_ZLIB)
     find_package(ZLIB)
@@ -79,6 +80,15 @@ if(STREAM_ENABLE_LIBARCHIVE)
     endif()
 endif()
 
+# Set helper variable for any compression library
+if(STREAM_HAVE_ZLIB OR STREAM_HAVE_BZIP2 OR STREAM_HAVE_LZMA OR STREAM_HAVE_ZSTD)
+    set(STREAM_HAVE_COMPRESSION 1)
+    message(STATUS "Compression support: ENABLED (at least one compression library available)")
+else()
+    set(STREAM_HAVE_COMPRESSION 0)
+    message(STATUS "Compression support: DISABLED (no compression libraries available)")
+endif()
+
 # Generate config header
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/stream_config.h.in
@@ -93,8 +103,8 @@ set(STREAM_SOURCES
     src/walker.c
 )
 
-# Optional compression support
-if(STREAM_HAVE_ZLIB)
+# Optional compression support - include if ANY compression library available
+if(STREAM_HAVE_COMPRESSION)
     list(APPEND STREAM_SOURCES src/compression_stream.c)
 endif()
 

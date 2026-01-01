@@ -146,7 +146,7 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 	/* Open stream for regular files */
 	struct file_stream fs;
 	struct stream *file_stream_ptr = NULL;
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 	struct compression_stream cs;
 #endif
 
@@ -154,7 +154,7 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 		if (file_stream_open(&fs, path, O_RDONLY, 0) == 0) {
 			file_stream_ptr = &fs.base;
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 			/* Auto-decompress if requested - compression stream owns file stream */
 			if (flags & WALK_DECOMPRESS) {
 				entry.stream = stream_auto_decompress(file_stream_ptr, &cs, 1);
@@ -357,7 +357,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 	int ret;
 
 	/* Try to decompress if it's a compressed archive */
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 	struct compression_stream cs;
 	struct stream *original_stream = stream;
 
@@ -369,7 +369,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 	/* Open as archive */
 	ret = archive_stream_open(&ar, stream, 0);
 	if (ret < 0) {
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 		/* Close compression stream if we created one */
 		if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 			stream_close(stream);
@@ -410,7 +410,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			archive_entry_stream_init(&aes, a, entry.size);
 
 			/* Auto-decompress if requested - stream library handles it! */
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 			if (flags & WALK_DECOMPRESS) {
 				entry.stream = stream_auto_decompress(&aes.base, &entry_cs, 0);
 			} else {
@@ -435,7 +435,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			if (entry.stream)
 				stream_close(entry.stream);
 			archive_stream_close(&ar);
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 			/* Close archive compression stream if we created one */
 			if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 				stream_close(stream);
@@ -454,7 +454,7 @@ skip:
 
 	archive_stream_close(&ar);
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef STREAM_HAVE_COMPRESSION
 	/* Close compression stream if we created one */
 	if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 		stream_close(stream);
@@ -476,7 +476,7 @@ int walk_path(const char *path, walker_fn callback, void *userdata,
 		return -ENOSYS;
 #endif
 
-#ifndef STREAM_HAVE_ZLIB
+#ifndef STREAM_HAVE_COMPRESSION
 	if (flags & WALK_DECOMPRESS)
 		return -ENOSYS;
 #endif
