@@ -7,7 +7,18 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+
+#ifndef _WIN32
 #include <libgen.h>
+#else
+/* Windows basename implementation */
+static const char *basename_win(const char *path) {
+	const char *p = strrchr(path, '\\');
+	if (!p) p = strrchr(path, '/');
+	return p ? p + 1 : path;
+}
+#define basename(x) basename_win(x)
+#endif
 
 #ifdef STREAM_HAVE_LIBARCHIVE
 #include <archive.h>
