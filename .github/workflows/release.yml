@@ -1,0 +1,97 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  build-release:
+    name: Build Release (${{ matrix.os }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: stream-linux-x64
+            asset_name: stream-linux-x64.tar.gz
+          - os: macos-latest
+            artifact_name: stream-macos-x64
+            asset_name: stream-macos-x64.tar.gz
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          zlib1g-dev \
+          libbz2-dev \
+          liblzma-dev \
+          libzstd-dev \
+          libarchive-dev
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install zlib bzip2 xz zstd libarchive
+
+    - name: Configure
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ./tests/test_basic
+        ./tests/test_compression
+        ./tests/test_walker
+        ./tests/test_archive
+
+    - name: Package
+      run: |
+        mkdir -p package/include
+        mkdir -p package/lib
+        mkdir -p package/examples
+        cp -r include/* package/include/
+        cp build/libstream.a package/lib/
+        cp examples/*.c package/examples/
+        cp README.md LICENSE package/
+        tar czf ${{ matrix.asset_name }} package/
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ matrix.asset_name }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_content_type: application/gzip

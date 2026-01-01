@@ -1,9 +1,51 @@
-*.sublime-workspace
+# Build artifacts
+build/
 *.o
 *.a
-*.exe
-tests/stream
-tests/each_file
-tests/test.txt
-tests/test_zip_file_stream_gz_mmap
-tests/test_zip_file_stream_mmap
+*.so
+*.dll
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Generated files
+include/stream_config.h
+
+# Test artifacts
+tests/*.log
+tests/test_*
+!tests/test_*.c
+
+# Coverage
+*.gcov
+*.gcda
+*.gcno
+coverage.info
+coverage/
+
+# CI artifacts
+cppcheck-report.txt
+build-warnings.txt
+
+# Documentation
+docs/html/
+docs/latex/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+*.zip
+*.vgm
+*.vgz
