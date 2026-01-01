@@ -13,7 +13,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <strings.h>
+#else
+/* Windows doesn't have strings.h, use string.h equivalents */
+#define strcasecmp _stricmp
+#endif
 #include <stdint.h>
 
 /* VGM header structure (first 64 bytes) */
