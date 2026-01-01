@@ -1,5 +1,5 @@
-#ifndef STREAM_CONFIG_H
-#define STREAM_CONFIG_H
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #define STREAM_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 #define STREAM_VERSION_MINOR @PROJECT_VERSION_MINOR@
@@ -15,4 +15,4 @@
 /* Helper macro: defined if ANY compression library is available */
 #cmakedefine STREAM_HAVE_COMPRESSION @STREAM_HAVE_COMPRESSION@
 
-#endif /* STREAM_CONFIG_H */
+#endif /* CONFIG_H */

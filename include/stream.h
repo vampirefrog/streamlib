@@ -116,7 +116,7 @@ typedef int mode_t;
 typedef off_t off64_t;
 #endif
 
-#include "stream_config.h"
+#include "config.h"
 
 #ifdef __cplusplus
 extern "C" {

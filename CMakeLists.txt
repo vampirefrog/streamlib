@@ -91,8 +91,8 @@ endif()
 
 # Generate config header
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/stream_config.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/include/stream_config.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
 )
 
 # Core sources
@@ -181,6 +181,6 @@ install(DIRECTORY include/
     FILES_MATCHING PATTERN "*.h"
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/stream_config.h
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
     DESTINATION include
 )
