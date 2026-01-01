@@ -191,7 +191,9 @@ int main(int argc, char **argv)
 	       file_size / (1024.0 * 1024.0));
 
 	struct stream *active_stream = &fs.base;
+#ifdef STREAMIO_HAVE_ZLIB
 	struct compression_stream cs;
+#endif
 
 	/* Handle compressed files */
 	if (compressed) {

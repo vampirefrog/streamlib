@@ -181,16 +181,16 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 	/* Try to expand archives (detected by magic bytes, not extension!) */
 	if ((flags & WALK_EXPAND_ARCHIVES) && !entry.is_dir) {
 		/* Open file */
-		struct file_stream fs;
-		if (file_stream_open(&fs, path, O_RDONLY, 0) < 0)
+		struct file_stream archive_fs;
+		if (file_stream_open(&archive_fs, path, O_RDONLY, 0) < 0)
 			return 0;  /* Skip on error */
 
 		/* Try to open as archive - libarchive auto-detects format by magic bytes
 		 * Supports: ZIP (50 4B), TAR (ustar at 257), 7z (37 7A BC AF),
 		 *           RAR (52 61 72 21), and many more */
-		ret = walk_archive(path, &fs.base, callback, userdata,
+		ret = walk_archive(path, &archive_fs.base, callback, userdata,
 				   flags, depth + 1);
-		stream_close(&fs.base);
+		stream_close(&archive_fs.base);
 
 		/* If archive walk succeeded or had a non-I/O error, propagate it
 		 * I/O errors likely mean "not an archive", so we ignore them */

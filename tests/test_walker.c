@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #ifndef _WIN32
 #include <unistd.h>
+#else
+#include <direct.h>  /* For _mkdir on Windows */
 #endif
 #include <sys/stat.h>
 
