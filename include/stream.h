@@ -64,6 +64,8 @@ typedef int mode_t;
 
 /* POSIX function compatibility */
 #define strdup _strdup
+#define unlink _unlink
+#define mkdir(path, mode) _mkdir(path)
 
 /* POSIX file flags for Windows */
 #ifndef O_RDONLY
