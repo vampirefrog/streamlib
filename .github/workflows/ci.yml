@@ -96,7 +96,10 @@ jobs:
         if [ "${{ matrix.config }}" = "full" ]; then
           cmake .. -DCMAKE_BUILD_TYPE=Debug \
                    -DZLIB_ROOT=$(brew --prefix zlib) \
-                   -DBZIP2_ROOT=$(brew --prefix bzip2)
+                   -DBZIP2_ROOT=$(brew --prefix bzip2) \
+                   -DLibLZMA_ROOT=$(brew --prefix xz) \
+                   -Dzstd_ROOT=$(brew --prefix zstd) \
+                   -DLibArchive_ROOT=$(brew --prefix libarchive)
         else
           cmake .. -DCMAKE_BUILD_TYPE=Debug
         fi

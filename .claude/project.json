@@ -1,0 +1,40 @@
+{
+  "name": "streamio",
+  "description": "Cross-platform stream I/O library with optional compression and archive support",
+  "version": "1.0.0",
+  "context": {
+    "coding_standards": "Linux kernel coding style",
+    "language": "C",
+    "build_system": "CMake",
+    "design_patterns": [
+      "Object-oriented C with vtables",
+      "Inheritance via struct embedding",
+      "First parameter is 'this' pointer"
+    ],
+    "key_constraints": [
+      "All archive and compression features must be optional",
+      "Support Windows, Linux, macOS, BSD",
+      "64-bit file offsets throughout",
+      "Return negative errno on error",
+      "Zero or positive return for success"
+    ]
+  },
+  "structure": {
+    "src/": "Implementation files",
+    "include/": "Public header files",
+    "tests/": "Test suite",
+    "examples/": "Example programs",
+    "docs/": "Documentation",
+    "cmake/": "CMake modules and helpers"
+  },
+  "dependencies": {
+    "required": [],
+    "optional": [
+      "zlib - gzip/deflate compression",
+      "libbz2 - bzip2 compression",
+      "liblzma - xz/lzma compression",
+      "libzstd - zstandard compression",
+      "libarchive - multi-format archive support"
+    ]
+  }
+}

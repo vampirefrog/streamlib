@@ -26,6 +26,27 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			walker_fn callback, void *userdata,
 			unsigned int flags, int depth);
 
+/* Check if a filename looks like an archive */
+static int is_archive_filename(const char *path)
+{
+	const char *ext = strrchr(path, '.');
+	if (!ext)
+		return 0;
+
+	/* Common archive extensions */
+	if (strcmp(ext, ".tar") == 0 ||
+	    strcmp(ext, ".zip") == 0 ||
+	    strcmp(ext, ".7z") == 0 ||
+	    strcmp(ext, ".rar") == 0 ||
+	    strcmp(ext, ".gz") == 0 ||   /* Could be .tar.gz */
+	    strcmp(ext, ".bz2") == 0 ||  /* Could be .tar.bz2 */
+	    strcmp(ext, ".xz") == 0 ||   /* Could be .tar.xz */
+	    strcmp(ext, ".zst") == 0)    /* Could be .tar.zst */
+		return 1;
+
+	return 0;
+}
+
 /* Simple stream wrapper for reading from current archive entry */
 struct archive_entry_stream {
 	struct stream base;
@@ -97,28 +118,6 @@ static void archive_entry_stream_init(struct archive_entry_stream *s,
 }
 
 #endif
-
-/* Check if a filename looks like an archive */
-static int is_archive_filename(const char *path)
-{
-	const char *ext = strrchr(path, '.');
-	if (!ext)
-		return 0;
-
-	/* Common archive extensions */
-	if (strcmp(ext, ".tar") == 0 ||
-	    strcmp(ext, ".zip") == 0 ||
-	    strcmp(ext, ".7z") == 0 ||
-	    strcmp(ext, ".rar") == 0 ||
-	    strcmp(ext, ".gz") == 0 ||   /* Could be .tar.gz */
-	    strcmp(ext, ".bz2") == 0 ||  /* Could be .tar.bz2 */
-	    strcmp(ext, ".xz") == 0 ||   /* Could be .tar.xz */
-	    strcmp(ext, ".zst") == 0)    /* Could be .tar.zst */
-		return 1;
-
-	return 0;
-}
-
 
 /* Walk a single file */
 static int walk_file(const char *path, walker_fn callback, void *userdata,
