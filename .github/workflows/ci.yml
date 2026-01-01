@@ -115,6 +115,46 @@ jobs:
         ./tests/test_walker || true
         ./tests/test_archive || true
 
+  # Windows build
+  windows:
+    name: Windows (${{ matrix.config }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [full, minimal]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (full)
+      if: matrix.config == 'full'
+      run: |
+        vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
+
+    - name: Configure
+      run: |
+        mkdir build
+        cd build
+        if ("${{ matrix.config }}" -eq "full") {
+          cmake .. -DCMAKE_BUILD_TYPE=Debug `
+                   -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+                   -DVCPKG_TARGET_TRIPLET=x64-windows
+        } else {
+          cmake .. -DCMAKE_BUILD_TYPE=Debug
+        }
+
+    - name: Build
+      run: cmake --build build --config Debug --parallel
+
+    - name: Test
+      run: |
+        cd build/Debug
+        ./test_basic.exe
+        ./test_compression.exe
+        ./test_walker.exe
+        ./test_archive.exe
+
   # Code coverage (Linux only)
   coverage:
     name: Code Coverage
@@ -229,7 +269,7 @@ jobs:
   build-summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [linux, macos, coverage, static-analysis, documentation]
+    needs: [linux, macos, windows, coverage, static-analysis, documentation]
     if: always()
 
     steps:
@@ -237,6 +277,7 @@ jobs:
       run: |
         echo "Linux builds: ${{ needs.linux.result }}"
         echo "macOS builds: ${{ needs.macos.result }}"
+        echo "Windows builds: ${{ needs.windows.result }}"
         echo "Coverage: ${{ needs.coverage.result }}"
         echo "Static analysis: ${{ needs.static-analysis.result }}"
         echo "Documentation: ${{ needs.documentation.result }}"
