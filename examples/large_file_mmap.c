@@ -13,7 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <sys/mman.h>
+#endif
 #include <fcntl.h>
 #include <time.h>
 #include <ctype.h>

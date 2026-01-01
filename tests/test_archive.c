@@ -7,13 +7,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define TEST_TAR "streamio_test.tar"
+#else
 #define TEST_TAR "/tmp/streamio_test.tar"
+#endif
+#ifdef _WIN32
+#define TEST_TGZ "streamio_test.tar.gz"
+#else
 #define TEST_TGZ "/tmp/streamio_test.tar.gz"
+#endif
+#ifdef _WIN32
+#define TEST_DIR "streamio_test_dir"
+#else
 #define TEST_DIR "/tmp/streamio_test_dir"
+#endif
 
 static int test_count = 0;
 static int test_passed = 0;

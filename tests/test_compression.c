@@ -7,13 +7,35 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
+#ifdef _WIN32
+#define TEST_FILE "streamio_compress_test.txt"
+#else
 #define TEST_FILE "/tmp/streamio_compress_test.txt"
+#endif
+#ifdef _WIN32
+#define TEST_FILE_GZ "streamio_compress_test.txt.gz"
+#else
 #define TEST_FILE_GZ "/tmp/streamio_compress_test.txt.gz"
+#endif
+#ifdef _WIN32
+#define TEST_FILE_BZ2 "streamio_compress_test.txt.bz2"
+#else
 #define TEST_FILE_BZ2 "/tmp/streamio_compress_test.txt.bz2"
+#endif
+#ifdef _WIN32
+#define TEST_FILE_XZ "streamio_compress_test.txt.xz"
+#else
 #define TEST_FILE_XZ "/tmp/streamio_compress_test.txt.xz"
+#endif
+#ifdef _WIN32
+#define TEST_FILE_ZST "streamio_compress_test.txt.zst"
+#else
 #define TEST_FILE_ZST "/tmp/streamio_compress_test.txt.zst"
+#endif
 
 static int test_count = 0;
 static int test_passed = 0;

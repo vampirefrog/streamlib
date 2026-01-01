@@ -7,10 +7,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
+#ifndef _WIN32
 #include <sys/mman.h>
+#endif
 
+#ifdef _WIN32
+#define TEST_FILE "streamio_test.dat"
+#else
 #define TEST_FILE "/tmp/streamio_test.dat"
+#endif
 
 static int test_count = 0;
 static int test_passed = 0;

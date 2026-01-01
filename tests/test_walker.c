@@ -7,10 +7,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <sys/stat.h>
 
+#ifdef _WIN32
+#define TEST_DIR "streamio_walker_test"
+#else
 #define TEST_DIR "/tmp/streamio_walker_test"
+#endif
 
 static int test_count = 0;
 static int test_passed = 0;
