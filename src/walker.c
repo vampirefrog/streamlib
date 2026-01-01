@@ -1,6 +1,6 @@
 /**
  * @file walker.c
- * @brief Path walker implementation
+ * @brief Path walker implementation (POSIX and Windows)
  */
 
 #include "stream.h"
@@ -8,9 +8,26 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#ifndef _WIN32
+/* POSIX headers */
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#else
+/* Windows headers */
+#include <windows.h>
+#include <sys/stat.h>
+#define PATH_MAX MAX_PATH
+
+/* basename implementation for Windows */
+static const char *basename_win(const char *path) {
+	const char *p = strrchr(path, '\\');
+	if (!p) p = strrchr(path, '/');
+	return p ? p + 1 : path;
+}
+#define basename(x) basename_win(x)
+#endif
 
 /* Forward declarations */
 static int walk_directory(const char *path, walker_fn callback, void *userdata,
@@ -189,15 +206,23 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 static int walk_directory(const char *path, walker_fn callback, void *userdata,
 			  unsigned int flags, int depth)
 {
+	struct stat st;
+
+#ifndef _WIN32
+	/* POSIX implementation */
 	DIR *dir = opendir(path);
 	if (!dir)
 		return -errno;
 
-	struct stat st;
 	if (stat(path, &st) < 0) {
 		closedir(dir);
 		return -errno;
 	}
+#else
+	/* Windows implementation */
+	if (stat(path, &st) < 0)
+		return -errno;
+#endif
 
 	/* First, callback for the directory itself */
 	struct walker_entry entry;
@@ -216,18 +241,23 @@ static int walk_directory(const char *path, walker_fn callback, void *userdata,
 	if (!(flags & WALK_FILTER_FILES)) {
 		int ret = callback(&entry, userdata);
 		if (ret != 0) {
+#ifndef _WIN32
 			closedir(dir);
+#endif
 			return ret;
 		}
 	}
 
 	/* If not recursing, stop here */
 	if (!(flags & WALK_RECURSE_DIRS)) {
+#ifndef _WIN32
 		closedir(dir);
+#endif
 		return 0;
 	}
 
-	/* Iterate through directory entries */
+#ifndef _WIN32
+	/* POSIX directory iteration */
 	struct dirent *ent;
 	while ((ent = readdir(dir)) != NULL) {
 		/* Skip . and .. */
@@ -267,6 +297,53 @@ static int walk_directory(const char *path, walker_fn callback, void *userdata,
 	}
 
 	closedir(dir);
+#else
+	/* Windows directory iteration */
+	char search_path[PATH_MAX];
+	snprintf(search_path, sizeof(search_path), "%s\\*", path);
+
+	WIN32_FIND_DATAA find_data;
+	HANDLE hFind = FindFirstFileA(search_path, &find_data);
+
+	if (hFind == INVALID_HANDLE_VALUE)
+		return -EIO;
+
+	do {
+		/* Skip . and .. */
+		if (strcmp(find_data.cFileName, ".") == 0 ||
+		    strcmp(find_data.cFileName, "..") == 0)
+			continue;
+
+		/* Build full path */
+		char full_path[PATH_MAX];
+		snprintf(full_path, sizeof(full_path), "%s\\%s", path, find_data.cFileName);
+
+		/* Get entry info */
+		if (stat(full_path, &st) < 0)
+			continue;
+
+		/* Recurse into subdirectories */
+		if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			int ret = walk_directory(full_path, callback, userdata,
+						 flags, depth + 1);
+			if (ret != 0) {
+				FindClose(hFind);
+				return ret;
+			}
+		} else {
+			/* Regular file */
+			int ret = walk_file(full_path, callback, userdata,
+					    flags, depth + 1);
+			if (ret != 0) {
+				FindClose(hFind);
+				return ret;
+			}
+		}
+	} while (FindNextFileA(hFind, &find_data));
+
+	FindClose(hFind);
+#endif
+
 	return 0;
 }
 

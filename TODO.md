@@ -29,6 +29,7 @@
 - [x] Implement libarchive wrapper
 - [x] Support reading archive entries
 - [x] Support nested compression (transparent decompression in archives)
+- [x] Archive format detection by magic bytes (not extension)
 - [x] Unit tests for archives
 
 ## Phase 5: Path Walker ✓ COMPLETED
@@ -72,7 +73,7 @@
   - [x] Perfect allocation/deallocation balance across all tests
 - [x] Cross-platform CI (GitHub Actions)
   - [x] Linux: GCC + Clang, full + minimal builds
-  - [x] macOS: full + minimal builds
+  - [x] macOS: full + minimal builds (with proper zstd linking)
   - [x] Valgrind memory leak checks in CI
   - [x] Static analysis (cppcheck)
   - [x] Code coverage reporting
