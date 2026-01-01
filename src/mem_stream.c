@@ -7,7 +7,9 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <sys/mman.h>
+#endif
 
 /* Forward declarations */
 static ssize_t mem_stream_read_impl(void *stream, void *buf, size_t count);

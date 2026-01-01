@@ -56,9 +56,54 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <sys/stat.h>
+#include <io.h>
 typedef __int64 off64_t;
 typedef __int64 ssize_t;
 typedef int mode_t;
+
+/* POSIX function compatibility */
+#define strdup _strdup
+
+/* POSIX file flags for Windows */
+#ifndef O_RDONLY
+#define O_RDONLY _O_RDONLY
+#endif
+#ifndef O_WRONLY
+#define O_WRONLY _O_WRONLY
+#endif
+#ifndef O_RDWR
+#define O_RDWR _O_RDWR
+#endif
+#ifndef O_CREAT
+#define O_CREAT _O_CREAT
+#endif
+#ifndef O_TRUNC
+#define O_TRUNC _O_TRUNC
+#endif
+#ifndef O_ACCMODE
+#define O_ACCMODE (_O_RDONLY | _O_WRONLY | _O_RDWR)
+#endif
+
+/* POSIX mmap flags for Windows */
+#ifndef PROT_READ
+#define PROT_READ 0x1
+#endif
+#ifndef PROT_WRITE
+#define PROT_WRITE 0x2
+#endif
+
+/* POSIX stat macros for Windows */
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
+#endif
+#ifndef S_ISREG
+#define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
+#endif
+#ifndef S_ISLNK
+#define S_ISLNK(m) 0  /* Windows doesn't have symlinks in the POSIX sense */
+#endif
+
 #else
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
