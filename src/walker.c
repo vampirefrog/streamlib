@@ -26,27 +26,6 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			walker_fn callback, void *userdata,
 			unsigned int flags, int depth);
 
-/* Check if a filename looks like an archive */
-static int is_archive_filename(const char *path)
-{
-	const char *ext = strrchr(path, '.');
-	if (!ext)
-		return 0;
-
-	/* Common archive extensions */
-	if (strcmp(ext, ".tar") == 0 ||
-	    strcmp(ext, ".zip") == 0 ||
-	    strcmp(ext, ".7z") == 0 ||
-	    strcmp(ext, ".rar") == 0 ||
-	    strcmp(ext, ".gz") == 0 ||   /* Could be .tar.gz */
-	    strcmp(ext, ".bz2") == 0 ||  /* Could be .tar.bz2 */
-	    strcmp(ext, ".xz") == 0 ||   /* Could be .tar.xz */
-	    strcmp(ext, ".zst") == 0)    /* Could be .tar.zst */
-		return 1;
-
-	return 0;
-}
-
 /* Simple stream wrapper for reading from current archive entry */
 struct archive_entry_stream {
 	struct stream base;
@@ -182,21 +161,24 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 		return ret;
 
 #ifdef STREAM_HAVE_LIBARCHIVE
-	/* Check if we should expand archives */
-	if ((flags & WALK_EXPAND_ARCHIVES) && !entry.is_dir &&
-	    is_archive_filename(path)) {
+	/* Try to expand archives (detected by magic bytes, not extension!) */
+	if ((flags & WALK_EXPAND_ARCHIVES) && !entry.is_dir) {
 		/* Open file */
 		struct file_stream fs;
 		if (file_stream_open(&fs, path, O_RDONLY, 0) < 0)
 			return 0;  /* Skip on error */
 
-		/* Try to open as archive */
+		/* Try to open as archive - libarchive auto-detects format by magic bytes
+		 * Supports: ZIP (50 4B), TAR (ustar at 257), 7z (37 7A BC AF),
+		 *           RAR (52 61 72 21), and many more */
 		ret = walk_archive(path, &fs.base, callback, userdata,
 				   flags, depth + 1);
 		stream_close(&fs.base);
 
+		/* If archive walk succeeded or had a non-I/O error, propagate it
+		 * I/O errors likely mean "not an archive", so we ignore them */
 		if (ret < 0 && ret != -EIO)
-			return ret;  /* Propagate errors except I/O errors */
+			return ret;
 	}
 #endif
 

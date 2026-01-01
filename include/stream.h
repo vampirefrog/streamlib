@@ -266,7 +266,7 @@ struct walker_entry {
 enum walk_flags {
 	/* Traversal options */
 	WALK_RECURSE_DIRS     = (1 << 0),  /* Recurse into subdirectories */
-	WALK_EXPAND_ARCHIVES  = (1 << 1),  /* Expand archive contents (ZIP, TAR, etc.) */
+	WALK_EXPAND_ARCHIVES  = (1 << 1),  /* Expand archive contents by magic bytes (ZIP, TAR, 7z, etc.) */
 	WALK_DECOMPRESS       = (1 << 2),  /* Auto-decompress by magic bytes (not extension!) */
 	WALK_FOLLOW_SYMLINKS  = (1 << 3),  /* Follow symbolic links */
 
