@@ -57,6 +57,8 @@
 #ifdef _WIN32
 #include <windows.h>
 typedef __int64 off64_t;
+typedef __int64 ssize_t;
+typedef int mode_t;
 #else
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
