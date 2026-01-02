@@ -43,8 +43,8 @@ make
 - `ENABLE_LZMA` - Enable xz/lzma support (default: ON)
 - `ENABLE_ZSTD` - Enable zstd support (default: ON)
 - `ENABLE_LIBARCHIVE` - Enable archive support (default: ON)
-- `STREAM_BUILD_TESTS` - Build test suite (default: ON)
-- `STREAM_BUILD_EXAMPLES` - Build examples (default: ON)
+- `BUILD_TESTS` - Build test suite (default: ON)
+- `BUILD_EXAMPLES` - Build examples (default: ON)
 
 ## Quick Start
 

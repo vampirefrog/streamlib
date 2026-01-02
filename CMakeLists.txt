@@ -7,8 +7,8 @@ option(ENABLE_BZIP2 "Enable bzip2 support" ON)
 option(ENABLE_LZMA "Enable xz/lzma support" ON)
 option(ENABLE_ZSTD "Enable zstd support" ON)
 option(ENABLE_LIBARCHIVE "Enable archive support" ON)
-option(STREAM_BUILD_TESTS "Build test suite" ON)
-option(STREAM_BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_TESTS "Build test suite" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
 
 # C standard
 set(CMAKE_C_STANDARD 99)
@@ -158,13 +158,13 @@ else()
 endif()
 
 # Tests
-if(STREAM_BUILD_TESTS)
+if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
 # Examples
-if(STREAM_BUILD_EXAMPLES)
+if(BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
