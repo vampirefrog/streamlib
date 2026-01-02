@@ -14,18 +14,28 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
-#define TEST_TAR "streamio_test.tar"
+#include <windows.h>
+static char g_temp_path[MAX_PATH];
+static char g_test_tar[MAX_PATH];
+static char g_test_tgz[MAX_PATH];
+static char g_test_dir[MAX_PATH];
+
+static void init_test_paths(void) {
+	static int initialized = 0;
+	if (!initialized) {
+		GetTempPathA(MAX_PATH, g_temp_path);
+		snprintf(g_test_tar, MAX_PATH, "%sstreamio_test.tar", g_temp_path);
+		snprintf(g_test_tgz, MAX_PATH, "%sstreamio_test.tar.gz", g_temp_path);
+		snprintf(g_test_dir, MAX_PATH, "%sstreamio_test_dir", g_temp_path);
+		initialized = 1;
+	}
+}
+#define TEST_TAR (init_test_paths(), g_test_tar)
+#define TEST_TGZ (init_test_paths(), g_test_tgz)
+#define TEST_DIR (init_test_paths(), g_test_dir)
 #else
 #define TEST_TAR "/tmp/streamio_test.tar"
-#endif
-#ifdef _WIN32
-#define TEST_TGZ "streamio_test.tar.gz"
-#else
 #define TEST_TGZ "/tmp/streamio_test.tar.gz"
-#endif
-#ifdef _WIN32
-#define TEST_DIR "streamio_test_dir"
-#else
 #define TEST_DIR "/tmp/streamio_test_dir"
 #endif
 
@@ -369,12 +379,17 @@ int main(void)
 
 #ifdef HAVE_LIBARCHIVE
 	test_archive_available();
+#ifndef _WIN32
+	/* Archive tests require tar command, skip on Windows */
 	test_archive_open();
 	test_archive_walk();
 	test_archive_read_entry();
 
 #ifdef HAVE_ZLIB
 	test_archive_compressed();
+#endif
+#else
+	printf("SKIP: Archive creation tests (tar command not available on Windows)\n");
 #endif
 
 #else

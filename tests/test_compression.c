@@ -12,28 +12,36 @@
 #endif
 
 #ifdef _WIN32
-#define TEST_FILE "streamio_compress_test.txt"
+#include <windows.h>
+static char g_temp_path[MAX_PATH];
+static char g_test_file[MAX_PATH];
+static char g_test_file_gz[MAX_PATH];
+static char g_test_file_bz2[MAX_PATH];
+static char g_test_file_xz[MAX_PATH];
+static char g_test_file_zst[MAX_PATH];
+
+static void init_test_paths(void) {
+	static int initialized = 0;
+	if (!initialized) {
+		GetTempPathA(MAX_PATH, g_temp_path);
+		snprintf(g_test_file, MAX_PATH, "%sstreamio_compress_test.txt", g_temp_path);
+		snprintf(g_test_file_gz, MAX_PATH, "%sstreamio_compress_test.txt.gz", g_temp_path);
+		snprintf(g_test_file_bz2, MAX_PATH, "%sstreamio_compress_test.txt.bz2", g_temp_path);
+		snprintf(g_test_file_xz, MAX_PATH, "%sstreamio_compress_test.txt.xz", g_temp_path);
+		snprintf(g_test_file_zst, MAX_PATH, "%sstreamio_compress_test.txt.zst", g_temp_path);
+		initialized = 1;
+	}
+}
+#define TEST_FILE (init_test_paths(), g_test_file)
+#define TEST_FILE_GZ (init_test_paths(), g_test_file_gz)
+#define TEST_FILE_BZ2 (init_test_paths(), g_test_file_bz2)
+#define TEST_FILE_XZ (init_test_paths(), g_test_file_xz)
+#define TEST_FILE_ZST (init_test_paths(), g_test_file_zst)
 #else
 #define TEST_FILE "/tmp/streamio_compress_test.txt"
-#endif
-#ifdef _WIN32
-#define TEST_FILE_GZ "streamio_compress_test.txt.gz"
-#else
 #define TEST_FILE_GZ "/tmp/streamio_compress_test.txt.gz"
-#endif
-#ifdef _WIN32
-#define TEST_FILE_BZ2 "streamio_compress_test.txt.bz2"
-#else
 #define TEST_FILE_BZ2 "/tmp/streamio_compress_test.txt.bz2"
-#endif
-#ifdef _WIN32
-#define TEST_FILE_XZ "streamio_compress_test.txt.xz"
-#else
 #define TEST_FILE_XZ "/tmp/streamio_compress_test.txt.xz"
-#endif
-#ifdef _WIN32
-#define TEST_FILE_ZST "streamio_compress_test.txt.zst"
-#else
 #define TEST_FILE_ZST "/tmp/streamio_compress_test.txt.zst"
 #endif
 

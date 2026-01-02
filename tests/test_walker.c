@@ -15,7 +15,18 @@
 #include <sys/stat.h>
 
 #ifdef _WIN32
-#define TEST_DIR "streamio_walker_test"
+#include <windows.h>
+static char g_test_dir[MAX_PATH];
+static const char *get_test_dir(void) {
+	static int initialized = 0;
+	if (!initialized) {
+		GetTempPathA(MAX_PATH, g_test_dir);
+		strcat(g_test_dir, "streamio_walker_test");
+		initialized = 1;
+	}
+	return g_test_dir;
+}
+#define TEST_DIR get_test_dir()
 #else
 #define TEST_DIR "/tmp/streamio_walker_test"
 #endif
@@ -41,35 +52,77 @@ static int test_passed = 0;
 		return; \
 	} while (0)
 
+/* Helper to create directory cross-platform */
+static int mkdir_compat(const char *path) {
+#ifdef _WIN32
+	return _mkdir(path);
+#else
+	return mkdir(path, 0755);
+#endif
+}
+
+/* Helper to build path cross-platform */
+static void build_path(char *dest, size_t size, const char *dir, const char *file) {
+#ifdef _WIN32
+	snprintf(dest, size, "%s\\%s", dir, file);
+#else
+	snprintf(dest, size, "%s/%s", dir, file);
+#endif
+}
+
+/* Recursive directory removal */
+static void rmdir_recursive(const char *path) {
+#ifdef _WIN32
+	char cmd[MAX_PATH + 20];
+	snprintf(cmd, sizeof(cmd), "rmdir /s /q \"%s\" 2>nul", path);
+	system(cmd);
+#else
+	char cmd[PATH_MAX + 20];
+	snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", path);
+	system(cmd);
+#endif
+}
+
 /* Create test directory structure */
 static int create_test_tree(void)
 {
-	system("rm -rf " TEST_DIR);
-	mkdir(TEST_DIR, 0755);
+	char path[512];
+
+	rmdir_recursive(TEST_DIR);
+	mkdir_compat(TEST_DIR);
 
 	/* Create files */
-	FILE *f1 = fopen(TEST_DIR "/file1.txt", "w");
+	build_path(path, sizeof(path), TEST_DIR, "file1.txt");
+	FILE *f1 = fopen(path, "w");
 	if (!f1) return -1;
 	fprintf(f1, "File 1 content");
 	fclose(f1);
 
-	FILE *f2 = fopen(TEST_DIR "/file2.txt", "w");
+	build_path(path, sizeof(path), TEST_DIR, "file2.txt");
+	FILE *f2 = fopen(path, "w");
 	if (!f2) return -1;
 	fprintf(f2, "File 2 content");
 	fclose(f2);
 
 	/* Create subdirectory */
-	mkdir(TEST_DIR "/subdir", 0755);
+	build_path(path, sizeof(path), TEST_DIR, "subdir");
+	mkdir_compat(path);
 
-	FILE *f3 = fopen(TEST_DIR "/subdir/file3.txt", "w");
+	char subdir_path[512];
+	build_path(subdir_path, sizeof(subdir_path), TEST_DIR, "subdir");
+	build_path(path, sizeof(path), subdir_path, "file3.txt");
+	FILE *f3 = fopen(path, "w");
 	if (!f3) return -1;
 	fprintf(f3, "File 3 in subdir");
 	fclose(f3);
 
 	/* Create nested subdirectory */
-	mkdir(TEST_DIR "/subdir/nested", 0755);
+	char nested_path[512];
+	build_path(nested_path, sizeof(nested_path), subdir_path, "nested");
+	mkdir_compat(nested_path);
 
-	FILE *f4 = fopen(TEST_DIR "/subdir/nested/file4.txt", "w");
+	build_path(path, sizeof(path), nested_path, "file4.txt");
+	FILE *f4 = fopen(path, "w");
 	if (!f4) return -1;
 	fprintf(f4, "File 4 in nested");
 	fclose(f4);
@@ -80,7 +133,7 @@ static int create_test_tree(void)
 /* Clean up test files */
 static void cleanup_test_tree(void)
 {
-	system("rm -rf " TEST_DIR);
+	rmdir_recursive(TEST_DIR);
 }
 
 /* Test walking a single file */
@@ -99,8 +152,11 @@ void test_walk_single_file(void)
 	if (create_test_tree() != 0)
 		FAIL("Failed to create test tree");
 
+	char file_path[512];
+	build_path(file_path, sizeof(file_path), TEST_DIR, "file1.txt");
+
 	single_file_count = 0;
-	int ret = walk_path(TEST_DIR "/file1.txt", single_file_callback, NULL, 0);
+	int ret = walk_path(file_path, single_file_callback, NULL, 0);
 	if (ret < 0) {
 		cleanup_test_tree();
 		FAIL("walk_path failed");
@@ -459,7 +515,8 @@ int main(void)
 	test_walk_filter_dirs();
 	test_read_file_streams();
 
-#ifdef HAVE_LIBARCHIVE
+#if defined(HAVE_LIBARCHIVE) && !defined(_WIN32)
+	/* Archive tests require tar command, skip on Windows */
 	test_walk_expand_archive();
 	test_read_archive_streams();
 #ifdef HAVE_ZLIB

@@ -15,7 +15,18 @@
 #endif
 
 #ifdef _WIN32
-#define TEST_FILE "streamio_test.dat"
+#include <windows.h>
+static char g_test_file[MAX_PATH];
+static const char *TEST_FILE(void) {
+	static int initialized = 0;
+	if (!initialized) {
+		GetTempPathA(MAX_PATH, g_test_file);
+		strcat(g_test_file, "streamio_test.dat");
+		initialized = 1;
+	}
+	return g_test_file;
+}
+#define TEST_FILE TEST_FILE()
 #else
 #define TEST_FILE "/tmp/streamio_test.dat"
 #endif
