@@ -10,7 +10,7 @@
 - [x] Implement base stream operations
 - [x] Implement file_stream
   - [x] POSIX implementation
-  - [ ] Windows implementation (future)
+  - [x] Windows implementation (CreateFileA, ReadFile/WriteFile, mmap)
   - [x] mmap support with offset
 - [x] Implement mem_stream
 - [x] Unit tests for core streams
@@ -35,7 +35,7 @@
 ## Phase 5: Path Walker ✓ COMPLETED
 - [x] Implement directory walking
   - [x] POSIX (readdir)
-  - [ ] Windows (FindFirstFile/FindNextFile) (future)
+  - [x] Windows (FindFirstFileA/FindNextFileA)
 - [x] Implement archive expansion
 - [x] Capability filtering (files/dirs)
 - [x] Transparent decompression with magic byte detection
@@ -78,12 +78,11 @@
   - [x] Static analysis (cppcheck)
   - [x] Code coverage reporting
   - [x] Release build workflow
-- [ ] Windows testing (future)
+  - [x] Windows CI testing (vcpkg + full/minimal builds)
 - [ ] Large file tests (>4GB)
 - [ ] Error handling coverage
 
 ## Future Enhancements
-- [ ] Windows support for file_stream and path walker
 - [ ] Write support for compression streams
 - [ ] Create/modify archive support (currently read-only)
 - [ ] Additional compression formats (lz4, brotli)
@@ -92,6 +91,6 @@
 - [ ] Encryption/decryption streams
 
 ## Known Limitations
-- Path walker: Windows implementation pending (currently POSIX only)
 - Compression: Write support limited (read is fully implemented)
 - Archives: Read-only (no creation/modification support yet)
+- Large file tests: Not yet tested with files >4GB

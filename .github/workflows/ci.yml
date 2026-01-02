@@ -127,29 +127,45 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup vcpkg
+      if: matrix.config == 'full'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        C:\vcpkg\vcpkg integrate install
+
     - name: Install dependencies (full)
       if: matrix.config == 'full'
       run: |
-        vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
+        C:\vcpkg\vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
 
-    - name: Configure
+    - name: Configure (full)
+      if: matrix.config == 'full'
       run: |
         mkdir build
         cd build
-        if ("${{ matrix.config }}" -eq "full") {
-          cmake .. -DCMAKE_BUILD_TYPE=Debug `
-                   -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-                   -DVCPKG_TARGET_TRIPLET=x64-windows
-        } else {
-          cmake .. -DCMAKE_BUILD_TYPE=Debug
-        }
+        cmake .. -DCMAKE_BUILD_TYPE=Debug `
+                 -DCMAKE_TOOLCHAIN_FILE="C:\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+                 -DVCPKG_TARGET_TRIPLET=x64-windows
+
+    - name: Configure (minimal)
+      if: matrix.config == 'minimal'
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug `
+                 -DENABLE_ZLIB=OFF `
+                 -DENABLE_BZIP2=OFF `
+                 -DENABLE_LZMA=OFF `
+                 -DENABLE_ZSTD=OFF `
+                 -DENABLE_LIBARCHIVE=OFF
 
     - name: Build
       run: cmake --build build --config Debug --parallel
 
     - name: Test
       run: |
-        cd build/tests/Debug
+        cd build\tests\Debug
         .\test_basic.exe
         if (Test-Path .\test_compression.exe) { .\test_compression.exe }
         if (Test-Path .\test_walker.exe) { .\test_walker.exe }
