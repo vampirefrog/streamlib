@@ -11,12 +11,10 @@ A unified stream-based I/O library with optional support for compression and arc
 - **Large file support**: 64-bit offsets throughout
 - **Memory-mapped I/O**: Native mmap with fallback emulation
 - **Optional compression**: gzip, bzip2, xz, zstd with automatic format detection
-- **Magic byte detection**: Compressed files detected by content, not extension
 - **Optional archive support**: ZIP, TAR, and more via libarchive
 - **Path walker**: Recursive directory traversal with archive expansion
 - **Transparent decompression**: Automatically decompress files in archives
 - **Unified API**: Consistent interface across all stream types
-- **OOP in C**: Virtual methods using function pointers
 
 ## Building
 
