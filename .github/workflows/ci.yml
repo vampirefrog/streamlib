@@ -127,17 +127,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup vcpkg
-      if: matrix.config == 'full'
-      run: |
-        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
-        C:\vcpkg\bootstrap-vcpkg.bat
-        C:\vcpkg\vcpkg integrate install
-
     - name: Install dependencies (full)
       if: matrix.config == 'full'
       run: |
-        C:\vcpkg\vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
+        vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
+      env:
+        VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     - name: Configure (full)
       if: matrix.config == 'full'
@@ -145,7 +140,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug `
-                 -DCMAKE_TOOLCHAIN_FILE="C:\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+                 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
                  -DVCPKG_TARGET_TRIPLET=x64-windows
 
     - name: Configure (minimal)
