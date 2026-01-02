@@ -112,7 +112,15 @@ static int create_test_tar(void)
 /* Clean up test files */
 static void cleanup_test_files(void)
 {
-	system("rm -rf " TEST_DIR);
+#ifdef _WIN32
+	char cmd[512];
+	snprintf(cmd, sizeof(cmd), "rmdir /s /q \"%s\" 2>nul", TEST_DIR);
+	system(cmd);
+#else
+	char cmd[512];
+	snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", TEST_DIR);
+	system(cmd);
+#endif
 	unlink(TEST_TAR);
 	unlink(TEST_TGZ);
 }

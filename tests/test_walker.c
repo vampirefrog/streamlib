@@ -483,7 +483,9 @@ void test_walk_decompress(void)
 	system(cmd);
 
 	/* Walk and read from compressed archive */
-	int ret = walk_path(TEST_DIR "/test.tar.gz", read_archive_callback, NULL,
+	char archive_path[512];
+	build_path(archive_path, sizeof(archive_path), TEST_DIR, "test.tar.gz");
+	int ret = walk_path(archive_path, read_archive_callback, NULL,
 			    WALK_EXPAND_ARCHIVES | WALK_DECOMPRESS);
 	if (ret < 0) {
 		cleanup_test_tree();
