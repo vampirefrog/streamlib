@@ -21,9 +21,9 @@ int main(int argc, char **argv)
 	printf("StreamIO version: %s\n", stream_get_version());
 	printf("Features: %s\n\n", stream_get_features_string());
 
-#ifndef STREAMIO_HAVE_ZLIB
+#ifndef HAVE_ZLIB
 	fprintf(stderr, "Error: This library was built without zlib support\n");
-	fprintf(stderr, "Rebuild with -DSTREAMIO_ENABLE_ZLIB=ON\n");
+	fprintf(stderr, "Rebuild with -DENABLE_ZLIB=ON\n");
 	return 1;
 #else
 

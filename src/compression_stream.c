@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 #include <zlib.h>
 
 /* zlib state structure */
@@ -18,7 +18,7 @@ struct zlib_state {
 };
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 #include <bzlib.h>
 
 /* bzip2 state structure */
@@ -28,7 +28,7 @@ struct bzip2_state {
 };
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 #include <lzma.h>
 
 /* lzma state structure */
@@ -38,7 +38,7 @@ struct lzma_state {
 };
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 #include <zstd.h>
 
 /* zstd state structure */
@@ -52,7 +52,7 @@ struct zstd_state {
 };
 #endif
 
-#if defined(STREAM_HAVE_ZLIB) || defined(STREAM_HAVE_BZIP2) || defined(STREAM_HAVE_LZMA) || defined(STREAM_HAVE_ZSTD)
+#if defined(HAVE_ZLIB) || defined(HAVE_BZIP2) || defined(HAVE_LZMA) || defined(HAVE_ZSTD)
 
 /* Forward declarations */
 static ssize_t compression_stream_read_impl(void *stream, void *buf, size_t count);
@@ -83,24 +83,24 @@ int compression_is_available(enum compression_type type)
 	case COMPRESS_NONE:
 		return 1;
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	case COMPRESS_GZIP:
 	case COMPRESS_ZLIB:
 		return 1;
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	case COMPRESS_BZIP2:
 		return 1;
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	case COMPRESS_XZ:
 	case COMPRESS_LZMA:
 		return 1;
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	case COMPRESS_ZSTD:
 		return 1;
 #endif
@@ -116,7 +116,7 @@ static int init_codec(struct compression_stream *stream)
 	int ret;
 
 	switch (stream->type) {
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	case COMPRESS_GZIP:
 	case COMPRESS_ZLIB: {
 		struct zlib_state *zs = calloc(1, sizeof(*zs));
@@ -143,7 +143,7 @@ static int init_codec(struct compression_stream *stream)
 	}
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	case COMPRESS_BZIP2: {
 		struct bzip2_state *bs = calloc(1, sizeof(*bs));
 		if (!bs)
@@ -165,7 +165,7 @@ static int init_codec(struct compression_stream *stream)
 	}
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	case COMPRESS_XZ:
 	case COMPRESS_LZMA: {
 		struct lzma_state *ls = calloc(1, sizeof(*ls));
@@ -194,7 +194,7 @@ static int init_codec(struct compression_stream *stream)
 	}
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	case COMPRESS_ZSTD: {
 		struct zstd_state *zs = calloc(1, sizeof(*zs));
 		if (!zs)
@@ -313,7 +313,7 @@ static ssize_t compression_stream_read_impl(void *stream_ptr, void *buf,
 
 	/* Codec-specific decompression */
 	switch (stream->type) {
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	case COMPRESS_GZIP:
 	case COMPRESS_ZLIB: {
 		struct zlib_state *zs = stream->codec_state;
@@ -353,7 +353,7 @@ static ssize_t compression_stream_read_impl(void *stream_ptr, void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	case COMPRESS_BZIP2: {
 		struct bzip2_state *bs = stream->codec_state;
 		bs->strm.next_out = (char *)stream->outbuf;
@@ -390,7 +390,7 @@ static ssize_t compression_stream_read_impl(void *stream_ptr, void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	case COMPRESS_XZ:
 	case COMPRESS_LZMA: {
 		struct lzma_state *ls = stream->codec_state;
@@ -428,7 +428,7 @@ static ssize_t compression_stream_read_impl(void *stream_ptr, void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	case COMPRESS_ZSTD: {
 		struct zstd_state *zs = stream->codec_state;
 
@@ -500,7 +500,7 @@ static ssize_t compression_stream_write_impl(void *stream_ptr, const void *buf,
 	struct compression_stream *stream = stream_ptr;
 
 	switch (stream->type) {
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	case COMPRESS_GZIP:
 	case COMPRESS_ZLIB: {
 		struct zlib_state *zs = stream->codec_state;
@@ -530,7 +530,7 @@ static ssize_t compression_stream_write_impl(void *stream_ptr, const void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	case COMPRESS_BZIP2: {
 		struct bzip2_state *bs = stream->codec_state;
 		bs->strm.next_in = (char *)buf;
@@ -559,7 +559,7 @@ static ssize_t compression_stream_write_impl(void *stream_ptr, const void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	case COMPRESS_XZ:
 	case COMPRESS_LZMA: {
 		struct lzma_state *ls = stream->codec_state;
@@ -589,7 +589,7 @@ static ssize_t compression_stream_write_impl(void *stream_ptr, const void *buf,
 	}
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	case COMPRESS_ZSTD: {
 		struct zstd_state *zs = stream->codec_state;
 
@@ -699,7 +699,7 @@ static int compression_stream_close_impl(void *stream_ptr)
 		return 0;
 
 	switch (stream->type) {
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	case COMPRESS_GZIP:
 	case COMPRESS_ZLIB: {
 		struct zlib_state *zs = stream->codec_state;
@@ -737,7 +737,7 @@ static int compression_stream_close_impl(void *stream_ptr)
 	}
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	case COMPRESS_BZIP2: {
 		struct bzip2_state *bs = stream->codec_state;
 
@@ -774,7 +774,7 @@ static int compression_stream_close_impl(void *stream_ptr)
 	}
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	case COMPRESS_XZ:
 	case COMPRESS_LZMA: {
 		struct lzma_state *ls = stream->codec_state;
@@ -809,7 +809,7 @@ static int compression_stream_close_impl(void *stream_ptr)
 	}
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	case COMPRESS_ZSTD: {
 		struct zstd_state *zs = stream->codec_state;
 
@@ -888,13 +888,13 @@ int compression_stream_auto(struct compression_stream *stream,
 		/* gzip: 1f 8b */
 		type = COMPRESS_GZIP;
 	}
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	else if (nread >= 3 && magic[0] == 'B' && magic[1] == 'Z' && magic[2] == 'h') {
 		/* bzip2: 42 5a 68 ("BZh") */
 		type = COMPRESS_BZIP2;
 	}
 #endif
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	else if (nread >= 6 && magic[0] == 0xFD && magic[1] == '7' &&
 		 magic[2] == 'z' && magic[3] == 'X' &&
 		 magic[4] == 'Z' && magic[5] == 0x00) {
@@ -902,7 +902,7 @@ int compression_stream_auto(struct compression_stream *stream,
 		type = COMPRESS_XZ;
 	}
 #endif
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	else if (nread >= 4 && magic[0] == 0x28 && magic[1] == 0xB5 &&
 		 magic[2] == 0x2F && magic[3] == 0xFD) {
 		/* Zstd: 28 b5 2f fd */
@@ -918,4 +918,4 @@ int compression_stream_auto(struct compression_stream *stream,
 				       owns_underlying);
 }
 
-#endif /* STREAM_HAVE_ZLIB || STREAM_HAVE_BZIP2 || STREAM_HAVE_LZMA || STREAM_HAVE_ZSTD */
+#endif /* HAVE_ZLIB || HAVE_BZIP2 || HAVE_LZMA || HAVE_ZSTD */

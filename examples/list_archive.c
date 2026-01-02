@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef STREAMIO_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 
 /* Callback to print each entry */
 static int print_entry(const struct archive_entry_info *entry, void *userdata)
@@ -30,7 +30,7 @@ static int print_entry(const struct archive_entry_info *entry, void *userdata)
 	return 0;
 }
 
-#endif /* STREAMIO_HAVE_LIBARCHIVE */
+#endif /* HAVE_LIBARCHIVE */
 
 int main(int argc, char **argv)
 {
@@ -46,9 +46,9 @@ int main(int argc, char **argv)
 	printf("StreamIO version: %s\n", stream_get_version());
 	printf("Features: %s\n\n", stream_get_features_string());
 
-#ifndef STREAMIO_HAVE_LIBARCHIVE
+#ifndef HAVE_LIBARCHIVE
 	fprintf(stderr, "Error: This library was built without libarchive support\n");
-	fprintf(stderr, "Rebuild with -DSTREAMIO_ENABLE_LIBARCHIVE=ON\n");
+	fprintf(stderr, "Rebuild with -DENABLE_LIBARCHIVE=ON\n");
 	return 1;
 #else
 
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Handle compressed archives if we have compression support */
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	struct compression_stream cs;
 	int using_compression = 0;
 
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
 	if (ret < 0) {
 		fprintf(stderr, "Failed to open archive: %s\n", strerror(-ret));
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 		if (using_compression)
 			stream_close(&cs.base);
 		else

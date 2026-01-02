@@ -11,7 +11,7 @@ add_executable(large_file_mmap large_file_mmap.c)
 target_link_libraries(large_file_mmap stream)
 
 # Read gzip example
-if(STREAM_HAVE_ZLIB)
+if(HAVE_ZLIB)
     add_executable(read_gzip read_gzip.c)
     target_link_libraries(read_gzip stream)
 
@@ -21,7 +21,7 @@ if(STREAM_HAVE_ZLIB)
 endif()
 
 # List archive example
-if(STREAM_HAVE_LIBARCHIVE)
+if(HAVE_LIBARCHIVE)
     add_executable(list_archive list_archive.c)
     target_link_libraries(list_archive stream)
 endif()
@@ -31,13 +31,13 @@ add_executable(midi_generator midi_generator.c)
 target_link_libraries(midi_generator stream)
 
 # VGZ analyzer (recursive archive + decompression)
-if(STREAM_HAVE_LIBARCHIVE AND STREAM_HAVE_ZLIB)
+if(HAVE_LIBARCHIVE AND HAVE_ZLIB)
     add_executable(vgz_analyzer vgz_analyzer.c)
     target_link_libraries(vgz_analyzer stream)
 endif()
 
 # Binary file writer (endianness control with compression)
-if(STREAM_HAVE_ZLIB)
+if(HAVE_ZLIB)
     add_executable(binary_writer binary_writer.c)
     target_link_libraries(binary_writer stream)
 endif()

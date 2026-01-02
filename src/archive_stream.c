@@ -20,7 +20,7 @@ static const char *basename_win(const char *path) {
 #define basename(x) basename_win(x)
 #endif
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
 
@@ -211,4 +211,4 @@ int archive_stream_close(struct archive_stream *stream)
 	return 0;
 }
 
-#endif /* STREAM_HAVE_LIBARCHIVE */
+#endif /* HAVE_LIBARCHIVE */

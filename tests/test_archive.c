@@ -50,7 +50,7 @@ static int test_passed = 0;
 		return; \
 	} while (0)
 
-#ifdef STREAMIO_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
 
@@ -100,7 +100,7 @@ void test_archive_available(void)
 {
 	TEST("archive_available");
 
-	if (!stream_has_feature(STREAMIO_FEAT_LIBARCHIVE))
+	if (!stream_has_feature(STREAM_FEAT_LIBARCHIVE))
 		FAIL("LIBARCHIVE feature should be available");
 
 	PASS();
@@ -290,7 +290,7 @@ void test_archive_read_entry(void)
 	PASS();
 }
 
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 /* Test reading compressed tar.gz archive */
 void test_archive_compressed(void)
 {
@@ -355,9 +355,9 @@ void test_archive_compressed(void)
 
 	PASS();
 }
-#endif /* STREAMIO_HAVE_ZLIB */
+#endif /* HAVE_ZLIB */
 
-#endif /* STREAMIO_HAVE_LIBARCHIVE */
+#endif /* HAVE_LIBARCHIVE */
 
 int main(void)
 {
@@ -367,13 +367,13 @@ int main(void)
 	printf("Version: %s\n", stream_get_version());
 	printf("Features: %s\n\n", stream_get_features_string());
 
-#ifdef STREAMIO_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 	test_archive_available();
 	test_archive_open();
 	test_archive_walk();
 	test_archive_read_entry();
 
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	test_archive_compressed();
 #endif
 

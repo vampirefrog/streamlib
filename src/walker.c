@@ -35,7 +35,7 @@ static int walk_directory(const char *path, walker_fn callback, void *userdata,
 static int walk_file(const char *path, walker_fn callback, void *userdata,
 		     unsigned int flags, int depth);
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
 
@@ -146,7 +146,7 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 	/* Open stream for regular files */
 	struct file_stream fs;
 	struct stream *file_stream_ptr = NULL;
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 	struct compression_stream cs;
 #endif
 
@@ -154,7 +154,7 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 		if (file_stream_open(&fs, path, O_RDONLY, 0) == 0) {
 			file_stream_ptr = &fs.base;
 
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 			/* Auto-decompress if requested - compression stream owns file stream */
 			if (flags & WALK_DECOMPRESS) {
 				entry.stream = stream_auto_decompress(file_stream_ptr, &cs, 1);
@@ -177,7 +177,7 @@ static int walk_file(const char *path, walker_fn callback, void *userdata,
 	if (ret != 0)
 		return ret;
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 	/* Try to expand archives (detected by magic bytes, not extension!) */
 	if ((flags & WALK_EXPAND_ARCHIVES) && !entry.is_dir) {
 		/* Open file */
@@ -347,7 +347,7 @@ static int walk_directory(const char *path, walker_fn callback, void *userdata,
 	return 0;
 }
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 /* Walk archive entries */
 static int walk_archive(const char *base_path, struct stream *stream,
 			walker_fn callback, void *userdata,
@@ -357,7 +357,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 	int ret;
 
 	/* Try to decompress if it's a compressed archive */
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 	struct compression_stream cs;
 	struct stream *original_stream = stream;
 
@@ -369,7 +369,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 	/* Open as archive */
 	ret = archive_stream_open(&ar, stream, 0);
 	if (ret < 0) {
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 		/* Close compression stream if we created one */
 		if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 			stream_close(stream);
@@ -410,7 +410,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			archive_entry_stream_init(&aes, a, entry.size);
 
 			/* Auto-decompress if requested - stream library handles it! */
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 			if (flags & WALK_DECOMPRESS) {
 				entry.stream = stream_auto_decompress(&aes.base, &entry_cs, 0);
 			} else {
@@ -435,7 +435,7 @@ static int walk_archive(const char *base_path, struct stream *stream,
 			if (entry.stream)
 				stream_close(entry.stream);
 			archive_stream_close(&ar);
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 			/* Close archive compression stream if we created one */
 			if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 				stream_close(stream);
@@ -454,7 +454,7 @@ skip:
 
 	archive_stream_close(&ar);
 
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 	/* Close compression stream if we created one */
 	if ((flags & WALK_DECOMPRESS) && stream != original_stream)
 		stream_close(stream);
@@ -462,7 +462,7 @@ skip:
 
 	return 0;
 }
-#endif /* STREAM_HAVE_LIBARCHIVE */
+#endif /* HAVE_LIBARCHIVE */
 
 /* Main walk_path function */
 int walk_path(const char *path, walker_fn callback, void *userdata,
@@ -471,12 +471,12 @@ int walk_path(const char *path, walker_fn callback, void *userdata,
 	struct stat st;
 
 	/* Check for unsupported features */
-#ifndef STREAM_HAVE_LIBARCHIVE
+#ifndef HAVE_LIBARCHIVE
 	if (flags & WALK_EXPAND_ARCHIVES)
 		return -ENOSYS;
 #endif
 
-#ifndef STREAM_HAVE_COMPRESSION
+#ifndef HAVE_COMPRESSION
 	if (flags & WALK_DECOMPRESS)
 		return -ENOSYS;
 #endif

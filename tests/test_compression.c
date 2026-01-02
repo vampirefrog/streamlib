@@ -58,7 +58,7 @@ static int test_passed = 0;
 		return; \
 	} while (0)
 
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 
 /* Test compression availability detection */
 void test_compression_available(void)
@@ -68,7 +68,7 @@ void test_compression_available(void)
 	if (!compression_is_available(COMPRESS_GZIP))
 		FAIL("GZIP should be available");
 
-	if (!stream_has_feature(STREAMIO_FEAT_ZLIB))
+	if (!stream_has_feature(STREAM_FEAT_ZLIB))
 		FAIL("ZLIB feature should be available");
 
 	PASS();
@@ -266,7 +266,7 @@ void test_gzip_roundtrip(void)
 
 	/* Compress to memory stream */
 	struct mem_stream ms_out;
-	mem_stream_create(&ms_out, 0);
+	mem_stream_init_dynamic(&ms_out, 0);
 
 	struct compression_stream cs_write;
 	int ret = gzip_stream_init(&cs_write, &ms_out.base, O_WRONLY, 0);
@@ -326,9 +326,9 @@ void test_gzip_roundtrip(void)
 	PASS();
 }
 
-#endif /* STREAMIO_HAVE_ZLIB */
+#endif /* HAVE_ZLIB */
 
-#ifdef STREAMIO_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 
 /* Test bzip2 availability */
 void test_bzip2_available(void)
@@ -338,7 +338,7 @@ void test_bzip2_available(void)
 	if (!compression_is_available(COMPRESS_BZIP2))
 		FAIL("BZIP2 should be available");
 
-	if (!stream_has_feature(STREAMIO_FEAT_BZIP2))
+	if (!stream_has_feature(STREAM_FEAT_BZIP2))
 		FAIL("BZIP2 feature should be available");
 
 	PASS();
@@ -535,7 +535,7 @@ void test_bzip2_roundtrip(void)
 
 	/* Compress to memory stream */
 	struct mem_stream ms_out;
-	mem_stream_create(&ms_out, 0);
+	mem_stream_init_dynamic(&ms_out, 0);
 
 	struct compression_stream cs_write;
 	int ret = compression_stream_init(&cs_write, &ms_out.base, COMPRESS_BZIP2,
@@ -597,9 +597,9 @@ void test_bzip2_roundtrip(void)
 	PASS();
 }
 
-#endif /* STREAMIO_HAVE_BZIP2 */
+#endif /* HAVE_BZIP2 */
 
-#ifdef STREAMIO_HAVE_LZMA
+#ifdef HAVE_LZMA
 
 /* Test xz/lzma availability */
 void test_xz_available(void)
@@ -609,7 +609,7 @@ void test_xz_available(void)
 	if (!compression_is_available(COMPRESS_XZ))
 		FAIL("XZ should be available");
 
-	if (!stream_has_feature(STREAMIO_FEAT_LZMA))
+	if (!stream_has_feature(STREAM_FEAT_LZMA))
 		FAIL("LZMA feature should be available");
 
 	PASS();
@@ -806,7 +806,7 @@ void test_xz_roundtrip(void)
 
 	/* Compress to memory stream */
 	struct mem_stream ms_out;
-	mem_stream_create(&ms_out, 0);
+	mem_stream_init_dynamic(&ms_out, 0);
 
 	struct compression_stream cs_write;
 	int ret = compression_stream_init(&cs_write, &ms_out.base, COMPRESS_XZ,
@@ -868,9 +868,9 @@ void test_xz_roundtrip(void)
 	PASS();
 }
 
-#endif /* STREAMIO_HAVE_LZMA */
+#endif /* HAVE_LZMA */
 
-#ifdef STREAMIO_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 
 /* Test zstd availability */
 void test_zstd_available(void)
@@ -880,7 +880,7 @@ void test_zstd_available(void)
 	if (!compression_is_available(COMPRESS_ZSTD))
 		FAIL("ZSTD should be available");
 
-	if (!stream_has_feature(STREAMIO_FEAT_ZSTD))
+	if (!stream_has_feature(STREAM_FEAT_ZSTD))
 		FAIL("ZSTD feature should be available");
 
 	PASS();
@@ -1077,7 +1077,7 @@ void test_zstd_roundtrip(void)
 
 	/* Compress to memory stream */
 	struct mem_stream ms_out;
-	mem_stream_create(&ms_out, 0);
+	mem_stream_init_dynamic(&ms_out, 0);
 
 	struct compression_stream cs_write;
 	int ret = compression_stream_init(&cs_write, &ms_out.base, COMPRESS_ZSTD,
@@ -1139,7 +1139,7 @@ void test_zstd_roundtrip(void)
 	PASS();
 }
 
-#endif /* STREAMIO_HAVE_ZSTD */
+#endif /* HAVE_ZSTD */
 
 int main(void)
 {
@@ -1149,7 +1149,7 @@ int main(void)
 	printf("Version: %s\n", stream_get_version());
 	printf("Features: %s\n\n", stream_get_features_string());
 
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	test_compression_available();
 	test_gzip_write();
 	test_gzip_read();
@@ -1159,7 +1159,7 @@ int main(void)
 	printf("SKIP: gzip tests (zlib not available)\n");
 #endif
 
-#ifdef STREAMIO_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	test_bzip2_available();
 	test_bzip2_write();
 	test_bzip2_read();
@@ -1169,7 +1169,7 @@ int main(void)
 	printf("SKIP: bzip2 tests (bzip2 not available)\n");
 #endif
 
-#ifdef STREAMIO_HAVE_LZMA
+#ifdef HAVE_LZMA
 	test_xz_available();
 	test_xz_write();
 	test_xz_read();
@@ -1179,7 +1179,7 @@ int main(void)
 	printf("SKIP: xz tests (lzma not available)\n");
 #endif
 
-#ifdef STREAMIO_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	test_zstd_available();
 	test_zstd_write();
 	test_zstd_read();

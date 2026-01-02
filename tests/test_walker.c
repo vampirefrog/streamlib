@@ -322,7 +322,7 @@ void test_read_file_streams(void)
 	PASS();
 }
 
-#ifdef STREAMIO_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 /* Test archive expansion */
 static int archive_entry_count = 0;
 static int archive_callback(const struct walker_entry *entry, void *userdata)
@@ -415,7 +415,7 @@ void test_read_archive_streams(void)
 	PASS();
 }
 
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 /* Test decompression while walking */
 void test_walk_decompress(void)
 {
@@ -459,10 +459,10 @@ int main(void)
 	test_walk_filter_dirs();
 	test_read_file_streams();
 
-#ifdef STREAMIO_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 	test_walk_expand_archive();
 	test_read_archive_streams();
-#ifdef STREAMIO_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	test_walk_decompress();
 #endif
 #endif

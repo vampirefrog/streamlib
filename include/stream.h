@@ -456,7 +456,7 @@ const void *mem_stream_get_buffer(struct mem_stream *stream, size_t *size);
  * COMPRESSION API
  * ============================================================================ */
 
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 
 /* Initialize compression stream with specific format */
 int compression_stream_init(struct compression_stream *stream,
@@ -502,14 +502,14 @@ int compression_stream_auto(struct compression_stream *stream,
 struct stream *stream_auto_decompress(struct stream *source,
                                        struct compression_stream *cs_storage,
                                        int owns_source);
-#endif /* STREAM_HAVE_COMPRESSION */
+#endif /* HAVE_COMPRESSION */
 
 /* ============================================================================
  * ARCHIVE API (Low-level)
  * Most users should use walk_path() instead
  * ============================================================================ */
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 /* Callback for iterating archive entries */
 typedef int (*archive_walk_fn)(const struct archive_entry_info *entry,
 			       void *userdata);
@@ -535,7 +535,7 @@ ssize_t archive_stream_read_data(struct archive_stream *stream,
 
 /* Close archive stream */
 int archive_stream_close(struct archive_stream *stream);
-#endif /* STREAM_HAVE_LIBARCHIVE */
+#endif /* HAVE_LIBARCHIVE */
 
 /* ============================================================================
  * PATH WALKER API (Recommended for most use cases)

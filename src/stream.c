@@ -229,23 +229,23 @@ unsigned int stream_get_features(void)
 {
 	unsigned int features = 0;
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	features |= STREAM_FEAT_ZLIB;
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	features |= STREAM_FEAT_BZIP2;
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	features |= STREAM_FEAT_LZMA;
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	features |= STREAM_FEAT_ZSTD;
 #endif
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 	features |= STREAM_FEAT_LIBARCHIVE;
 #endif
 
@@ -279,27 +279,27 @@ const char *stream_get_features_string(void)
 
 	*p = '\0';
 
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_ZLIB
 	p += sprintf(p, "%szlib", first ? "" : ", ");
 	first = 0;
 #endif
 
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 	p += sprintf(p, "%sbzip2", first ? "" : ", ");
 	first = 0;
 #endif
 
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 	p += sprintf(p, "%slzma", first ? "" : ", ");
 	first = 0;
 #endif
 
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 	p += sprintf(p, "%szstd", first ? "" : ", ");
 	first = 0;
 #endif
 
-#ifdef STREAM_HAVE_LIBARCHIVE
+#ifdef HAVE_LIBARCHIVE
 	p += sprintf(p, "%slibarchive", first ? "" : ", ");
 	first = 0;
 #endif
@@ -314,7 +314,7 @@ const char *stream_get_features_string(void)
  * TRANSPARENT DECOMPRESSION
  * ============================================================================ */
 
-#ifdef STREAM_HAVE_COMPRESSION
+#ifdef HAVE_COMPRESSION
 
 /* Prefetch stream for non-seekable streams (used internally) */
 struct prefetch_stream_internal {
@@ -452,19 +452,19 @@ struct stream *stream_auto_decompress(struct stream *source,
 			if (nread >= 2 && magic[0] == 0x1f && magic[1] == 0x8b) {
 				ctype = COMPRESS_GZIP;
 			}
-#ifdef STREAM_HAVE_BZIP2
+#ifdef HAVE_BZIP2
 			else if (nread >= 3 && magic[0] == 'B' && magic[1] == 'Z' && magic[2] == 'h') {
 				ctype = COMPRESS_BZIP2;
 			}
 #endif
-#ifdef STREAM_HAVE_LZMA
+#ifdef HAVE_LZMA
 			else if (nread >= 6 && magic[0] == 0xFD && magic[1] == '7' &&
 				 magic[2] == 'z' && magic[3] == 'X' &&
 				 magic[4] == 'Z' && magic[5] == 0x00) {
 				ctype = COMPRESS_XZ;
 			}
 #endif
-#ifdef STREAM_HAVE_ZSTD
+#ifdef HAVE_ZSTD
 			else if (nread >= 4 && magic[0] == 0x28 && magic[1] == 0xB5 &&
 				 magic[2] == 0x2F && magic[3] == 0xFD) {
 				ctype = COMPRESS_ZSTD;
@@ -507,7 +507,7 @@ struct stream *stream_auto_decompress(struct stream *source,
 	/* Detection failed - use source stream directly */
 	return source;
 }
-#endif /* STREAM_HAVE_COMPRESSION */
+#endif /* HAVE_COMPRESSION */
 
 /* ============================================================================
  * BINARY I/O HELPERS
