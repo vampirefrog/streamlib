@@ -18,16 +18,11 @@
 #ifdef _WIN32
 #include <windows.h>
 static char g_test_dir[MAX_PATH];
-static const char *get_test_dir(void) {
-	static int initialized = 0;
-	if (!initialized) {
-		GetTempPathA(MAX_PATH, g_test_dir);
-		strcat(g_test_dir, "streamio_walker_test");
-		initialized = 1;
-	}
-	return g_test_dir;
+static void init_test_dir(void) {
+	GetTempPathA(MAX_PATH, g_test_dir);
+	strcat(g_test_dir, "streamio_walker_test");
 }
-#define TEST_DIR get_test_dir()
+#define TEST_DIR g_test_dir
 #else
 #define TEST_DIR "/tmp/streamio_walker_test"
 #endif
@@ -503,6 +498,10 @@ void test_walk_decompress(void)
 
 int main(void)
 {
+#ifdef _WIN32
+	init_test_dir();
+#endif
+
 	printf("StreamIO Walker Tests\n");
 	printf("======================\n\n");
 

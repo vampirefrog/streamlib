@@ -15,24 +15,21 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <direct.h>
 static char g_temp_path[MAX_PATH];
 static char g_test_tar[MAX_PATH];
 static char g_test_tgz[MAX_PATH];
 static char g_test_dir[MAX_PATH];
 
 static void init_test_paths(void) {
-	static int initialized = 0;
-	if (!initialized) {
-		GetTempPathA(MAX_PATH, g_temp_path);
-		snprintf(g_test_tar, MAX_PATH, "%sstreamio_test.tar", g_temp_path);
-		snprintf(g_test_tgz, MAX_PATH, "%sstreamio_test.tar.gz", g_temp_path);
-		snprintf(g_test_dir, MAX_PATH, "%sstreamio_test_dir", g_temp_path);
-		initialized = 1;
-	}
+	GetTempPathA(MAX_PATH, g_temp_path);
+	snprintf(g_test_tar, MAX_PATH, "%sstreamio_test.tar", g_temp_path);
+	snprintf(g_test_tgz, MAX_PATH, "%sstreamio_test.tar.gz", g_temp_path);
+	snprintf(g_test_dir, MAX_PATH, "%sstreamio_test_dir", g_temp_path);
 }
-#define TEST_TAR (init_test_paths(), g_test_tar)
-#define TEST_TGZ (init_test_paths(), g_test_tgz)
-#define TEST_DIR (init_test_paths(), g_test_dir)
+#define TEST_TAR g_test_tar
+#define TEST_TGZ g_test_tgz
+#define TEST_DIR g_test_dir
 #else
 #define TEST_TAR "/tmp/streamio_test.tar"
 #define TEST_TGZ "/tmp/streamio_test.tar.gz"
@@ -67,23 +64,38 @@ static int test_passed = 0;
 /* Create a test tar file using system tar command */
 static int create_test_tar(void)
 {
-	/* Create test directory and files */
-	mkdir(TEST_DIR, 0755);
+	char path[512];
 
-	FILE *f1 = fopen(TEST_DIR "/file1.txt", "w");
+	/* Create test directory and files */
+#ifdef _WIN32
+	_mkdir(TEST_DIR);
+#else
+	mkdir(TEST_DIR, 0755);
+#endif
+
+	snprintf(path, sizeof(path), "%s/file1.txt", TEST_DIR);
+	FILE *f1 = fopen(path, "w");
 	if (!f1)
 		return -1;
 	fprintf(f1, "Content of file 1");
 	fclose(f1);
 
-	FILE *f2 = fopen(TEST_DIR "/file2.txt", "w");
+	snprintf(path, sizeof(path), "%s/file2.txt", TEST_DIR);
+	FILE *f2 = fopen(path, "w");
 	if (!f2)
 		return -1;
 	fprintf(f2, "Content of file 2");
 	fclose(f2);
 
-	mkdir(TEST_DIR "/subdir", 0755);
-	FILE *f3 = fopen(TEST_DIR "/subdir/file3.txt", "w");
+	snprintf(path, sizeof(path), "%s/subdir", TEST_DIR);
+#ifdef _WIN32
+	_mkdir(path);
+#else
+	mkdir(path, 0755);
+#endif
+
+	snprintf(path, sizeof(path), "%s/subdir/file3.txt", TEST_DIR);
+	FILE *f3 = fopen(path, "w");
 	if (!f3)
 		return -1;
 	fprintf(f3, "Content of file 3 in subdir");
@@ -371,6 +383,10 @@ void test_archive_compressed(void)
 
 int main(void)
 {
+#ifdef _WIN32
+	init_test_paths();
+#endif
+
 	printf("StreamIO Archive Tests\n");
 	printf("=======================\n\n");
 

@@ -17,16 +17,11 @@
 #ifdef _WIN32
 #include <windows.h>
 static char g_test_file[MAX_PATH];
-static const char *TEST_FILE(void) {
-	static int initialized = 0;
-	if (!initialized) {
-		GetTempPathA(MAX_PATH, g_test_file);
-		strcat(g_test_file, "streamio_test.dat");
-		initialized = 1;
-	}
-	return g_test_file;
+static void init_test_file(void) {
+	GetTempPathA(MAX_PATH, g_test_file);
+	strcat(g_test_file, "streamio_test.dat");
 }
-#define TEST_FILE TEST_FILE()
+#define TEST_FILE g_test_file
 #else
 #define TEST_FILE "/tmp/streamio_test.dat"
 #endif
@@ -297,6 +292,10 @@ void test_capabilities(void)
 
 int main(void)
 {
+#ifdef _WIN32
+	init_test_file();
+#endif
+
 	printf("StreamIO Basic Tests\n");
 	printf("====================\n\n");
 

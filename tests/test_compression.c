@@ -21,22 +21,18 @@ static char g_test_file_xz[MAX_PATH];
 static char g_test_file_zst[MAX_PATH];
 
 static void init_test_paths(void) {
-	static int initialized = 0;
-	if (!initialized) {
-		GetTempPathA(MAX_PATH, g_temp_path);
-		snprintf(g_test_file, MAX_PATH, "%sstreamio_compress_test.txt", g_temp_path);
-		snprintf(g_test_file_gz, MAX_PATH, "%sstreamio_compress_test.txt.gz", g_temp_path);
-		snprintf(g_test_file_bz2, MAX_PATH, "%sstreamio_compress_test.txt.bz2", g_temp_path);
-		snprintf(g_test_file_xz, MAX_PATH, "%sstreamio_compress_test.txt.xz", g_temp_path);
-		snprintf(g_test_file_zst, MAX_PATH, "%sstreamio_compress_test.txt.zst", g_temp_path);
-		initialized = 1;
-	}
+	GetTempPathA(MAX_PATH, g_temp_path);
+	snprintf(g_test_file, MAX_PATH, "%sstreamio_compress_test.txt", g_temp_path);
+	snprintf(g_test_file_gz, MAX_PATH, "%sstreamio_compress_test.txt.gz", g_temp_path);
+	snprintf(g_test_file_bz2, MAX_PATH, "%sstreamio_compress_test.txt.bz2", g_temp_path);
+	snprintf(g_test_file_xz, MAX_PATH, "%sstreamio_compress_test.txt.xz", g_temp_path);
+	snprintf(g_test_file_zst, MAX_PATH, "%sstreamio_compress_test.txt.zst", g_temp_path);
 }
-#define TEST_FILE (init_test_paths(), g_test_file)
-#define TEST_FILE_GZ (init_test_paths(), g_test_file_gz)
-#define TEST_FILE_BZ2 (init_test_paths(), g_test_file_bz2)
-#define TEST_FILE_XZ (init_test_paths(), g_test_file_xz)
-#define TEST_FILE_ZST (init_test_paths(), g_test_file_zst)
+#define TEST_FILE g_test_file
+#define TEST_FILE_GZ g_test_file_gz
+#define TEST_FILE_BZ2 g_test_file_bz2
+#define TEST_FILE_XZ g_test_file_xz
+#define TEST_FILE_ZST g_test_file_zst
 #else
 #define TEST_FILE "/tmp/streamio_compress_test.txt"
 #define TEST_FILE_GZ "/tmp/streamio_compress_test.txt.gz"
@@ -1151,6 +1147,10 @@ void test_zstd_roundtrip(void)
 
 int main(void)
 {
+#ifdef _WIN32
+	init_test_paths();
+#endif
+
 	printf("StreamIO Compression Tests\n");
 	printf("===========================\n\n");
 
