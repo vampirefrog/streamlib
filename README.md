@@ -1,3 +1,5 @@
+![CI](https://github.com/vampirefrog/streamlib/actions/workflows/ci.yml/badge.svg)
+
 # StreamLib - Cross-Platform Stream I/O Library
 
 A unified stream-based I/O library with optional support for compression and archives.
