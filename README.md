@@ -77,6 +77,32 @@ if (compression_stream_auto(&cs, &fs.base, 1) == 0) {
 #endif
 ```
 
+### Writing Compressed Files
+```c
+// Compress data to any format (gzip, bzip2, xz, zstd)
+#ifdef HAVE_COMPRESSION
+struct file_stream output;
+struct compression_stream cs;
+
+// Create gzip-compressed file
+file_stream_open(&output, "data.txt.gz", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+gzip_stream_init(&cs, &output.base, O_WRONLY, 1);
+
+// Write data - automatically compressed
+const char *text = "Hello, compressed world!";
+stream_write(&cs.base, text, strlen(text));
+
+// Close triggers finalization and flushes remaining compressed data
+stream_close(&cs.base);
+
+// Or use any format by type:
+file_stream_open(&output, "data.txt.xz", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+compression_stream_init(&cs, &output.base, COMPRESS_XZ, O_WRONLY, 1);
+stream_write(&cs.base, text, strlen(text));
+stream_close(&cs.base);
+#endif
+```
+
 ### Path Walker with Transparent Decompression
 ```c
 // Walk directory tree, expanding archives and decompressing files
@@ -167,7 +193,7 @@ void mem_stream_free(struct mem_stream *stream);
 
 ### Compression Streams
 
-Transparent compression/decompression (requires compression libraries):
+Transparent compression and decompression (requires compression libraries). Supports both reading (decompression) and writing (compression).
 
 ```c
 struct compression_stream {
@@ -181,7 +207,12 @@ int compression_stream_init(struct compression_stream *stream,
                             enum compression_type type,
                             int flags, int owns_underlying);
 
-// Auto-detect format by magic bytes
+// Convenience wrapper for gzip
+int gzip_stream_init(struct compression_stream *stream,
+                     struct stream *underlying,
+                     int flags, int owns_underlying);
+
+// Auto-detect format by magic bytes (read-only)
 int compression_stream_auto(struct compression_stream *stream,
                             struct stream *underlying,
                             int owns_underlying);
@@ -192,7 +223,29 @@ struct stream *stream_auto_decompress(struct stream *source,
                                       int owns_source);
 ```
 
-**Supported formats**: gzip (`.gz`), bzip2 (`.bz2`), xz (`.xz`), zstd (`.zst`)
+**Reading (decompression):** Use `O_RDONLY` flag
+**Writing (compression):** Use `O_WRONLY` flag
+**Note:** Compression streams are unidirectional - use separate streams for read and write
+
+**Example - Writing compressed data:**
+```c
+struct file_stream out;
+struct compression_stream cs;
+
+file_stream_open(&out, "output.gz", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+gzip_stream_init(&cs, &out.base, O_WRONLY, 1);
+stream_write(&cs.base, data, size);
+stream_close(&cs.base);  // Finalization happens here
+```
+
+**Supported formats**:
+
+| Format | Extension | Magic Bytes | Read | Write |
+|--------|-----------|-------------|------|-------|
+| gzip   | `.gz`     | `1f 8b`     | ✓    | ✓     |
+| bzip2  | `.bz2`    | `42 5a 68`  | ✓    | ✓     |
+| xz     | `.xz`     | `fd 37 7a 58 5a 00` | ✓ | ✓ |
+| zstd   | `.zst`    | `28 b5 2f fd` | ✓  | ✓     |
 
 ### Archive Streams
 
@@ -413,6 +466,31 @@ All tests include verification of:
 - Magic byte detection for non-standard extensions
 - Transparent decompression in archives
 - Round-trip compression/decompression
+
+## Examples
+
+See the `examples/` directory for complete working examples:
+
+**Basic I/O:**
+- `read_file.c` - Read files with stream interface
+- `binary_writer.c` - Write binary data with endianness control
+
+**Compression:**
+- `read_gzip.c` - Read and decompress gzip files
+- `write_compressed.c` - Compress files to any format (gzip, bzip2, xz, zstd)
+- `compress_text.c` - Compare compression ratios across all formats
+
+**Archives:**
+- `list_archive.c` - List archive contents (ZIP, TAR, etc.)
+- `vgz_analyzer.c` - Analyze VGZ files (compressed game music archives)
+
+**Advanced:**
+- `walk_tree.c` - Recursive directory walking with callbacks
+- `large_file_mmap.c` - Memory-mapped I/O for large files
+- `test_mmap_emulation.c` - Emulated mmap on compressed streams
+- `midi_generator.c` - Generate MIDI files in memory
+
+Build examples with: `cmake --build build`
 
 ## License
 

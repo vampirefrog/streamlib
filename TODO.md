@@ -83,7 +83,7 @@
 - [ ] Error handling coverage
 
 ## Future Enhancements
-- [ ] Write support for compression streams
+- [x] Write support for compression streams - Fully implemented and documented
 - [ ] Create/modify archive support (currently read-only)
 - [ ] Additional compression formats (lz4, brotli)
 - [ ] Async I/O support
@@ -91,6 +91,5 @@
 - [ ] Encryption/decryption streams
 
 ## Known Limitations
-- Compression: Write support limited (read is fully implemented)
 - Archives: Read-only (no creation/modification support yet)
 - Large file tests: Not yet tested with files >4GB

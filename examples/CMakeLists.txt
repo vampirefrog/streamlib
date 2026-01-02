@@ -20,6 +20,17 @@ if(HAVE_ZLIB)
     target_link_libraries(test_mmap_emulation stream)
 endif()
 
+# Compression write examples
+if(HAVE_COMPRESSION)
+    # Write compressed files
+    add_executable(write_compressed write_compressed.c)
+    target_link_libraries(write_compressed stream)
+
+    # Compare compression ratios
+    add_executable(compress_text compress_text.c)
+    target_link_libraries(compress_text stream)
+endif()
+
 # List archive example
 if(HAVE_LIBARCHIVE)
     add_executable(list_archive list_archive.c)
