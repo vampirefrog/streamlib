@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+
+env:
+  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
 jobs:
   create-release:
@@ -11,39 +20,254 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
+    - name: Get version from tag
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref }}
+        name: StreamLib v${{ steps.get_version.outputs.version }}
         draft: false
         prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-release:
-    name: Build Release (${{ matrix.os }})
+  source-archive:
+    name: Create Source Archive
     needs: create-release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            artifact_name: stream-linux-x64
-            asset_name: stream-linux-x64.tar.gz
-          - os: macos-latest
-            artifact_name: stream-macos-x64
-            asset_name: stream-macos-x64.tar.gz
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Create source archive
+      run: |
+        VERSION="${{ needs.create-release.outputs.version }}"
+        mkdir -p streamlib-${VERSION}
+
+        # Copy source files
+        cp -r src include examples tests CMakeLists.txt streamlib-${VERSION}/
+        cp README.md LICENSE TODO.md streamlib-${VERSION}/
+
+        # Create archives
+        tar czf streamlib-${VERSION}-source.tar.gz streamlib-${VERSION}/
+        zip -r streamlib-${VERSION}-source.zip streamlib-${VERSION}/
+
+    - name: Upload source archives
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: |
+          streamlib-*.tar.gz
+          streamlib-*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows (${{ matrix.config.name }})
+    needs: create-release
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        config:
+          - name: "Static"
+            static: "ON"
+            shared: "OFF"
+            suffix: "static"
+          - name: "DLL"
+            static: "OFF"
+            shared: "ON"
+            suffix: "dll"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+
+    # Export GitHub Actions cache environment variables for vcpkg
+    - name: Setup vcpkg binary caching
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+    - name: Install dependencies with vcpkg
+      run: |
+        vcpkg install zlib:x64-windows
+        vcpkg install bzip2:x64-windows
+        vcpkg install liblzma:x64-windows
+        vcpkg install zstd:x64-windows
+        vcpkg install libarchive:x64-windows
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} `
+          -DENABLE_ZLIB=ON `
+          -DENABLE_BZIP2=ON `
+          -DENABLE_LZMA=ON `
+          -DENABLE_ZSTD=ON `
+          -DENABLE_LIBARCHIVE=ON
+
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure
+
+    - name: Package
+      shell: pwsh
+      run: |
+        $VERSION = "${{ needs.create-release.outputs.version }}"
+        $SUFFIX = "${{ matrix.config.suffix }}"
+        $PKG_DIR = "streamlib-${VERSION}-windows-x64-${SUFFIX}"
+
+        # Create package structure
+        New-Item -ItemType Directory -Force -Path "${PKG_DIR}/include"
+        New-Item -ItemType Directory -Force -Path "${PKG_DIR}/lib"
+        New-Item -ItemType Directory -Force -Path "${PKG_DIR}/bin"
+        New-Item -ItemType Directory -Force -Path "${PKG_DIR}/examples"
+
+        # Copy headers
+        Copy-Item -Recurse include/* "${PKG_DIR}/include/"
+
+        # Copy library files
+        if ("${{ matrix.config.shared }}" -eq "ON") {
+          # DLL build
+          Copy-Item build/Release/stream.dll "${PKG_DIR}/bin/"
+          Copy-Item build/Release/stream.lib "${PKG_DIR}/lib/"
+
+          # Copy dependency DLLs
+          $VCPKG_ROOT = "${{ github.workspace }}/vcpkg/installed/x64-windows/bin"
+          Copy-Item "${VCPKG_ROOT}/zlib1.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/bz2.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/lzma.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/zstd.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/archive.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/liblzma.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/charset.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_ROOT}/iconv.dll" "${PKG_DIR}/bin/" -ErrorAction SilentlyContinue
+        } else {
+          # Static build
+          Copy-Item build/Release/stream.lib "${PKG_DIR}/lib/"
+
+          # Copy dependency static libs
+          $VCPKG_LIB = "${{ github.workspace }}/vcpkg/installed/x64-windows/lib"
+          Copy-Item "${VCPKG_LIB}/zlib.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/bz2.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/lzma.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/zstd.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/archive.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/liblzma.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/charset.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+          Copy-Item "${VCPKG_LIB}/iconv.lib" "${PKG_DIR}/lib/" -ErrorAction SilentlyContinue
+        }
+
+        # Copy example source files
+        Copy-Item examples/*.c "${PKG_DIR}/examples/"
+
+        # Copy documentation
+        Copy-Item README.md, LICENSE "${PKG_DIR}/"
+
+        # Create README for the package
+        @"
+# StreamLib Library v${VERSION} - Windows x64 (${{ matrix.config.name }})
+
+This package contains the StreamLib library built for Windows x64.
+
+## Contents
+
+- ``include/`` - Header files
+- ``lib/`` - Library files (.lib)
+- ``bin/`` - DLL files (DLL build only)
+- ``examples/`` - Example source code
+- ``README.md`` - This file
+- ``LICENSE`` - License information
+
+## Usage
+
+### For DLL build:
+1. Add ``include/`` to your include path
+2. Add ``lib/`` to your library path
+3. Link against ``stream.lib``
+4. Add ``bin/`` to your PATH or copy DLLs to your application directory
+
+### For static build:
+1. Add ``include/`` to your include path
+2. Add ``lib/`` to your library path
+3. Link against: stream.lib, zlib.lib, bz2.lib, lzma.lib, zstd.lib, archive.lib
+4. No runtime DLLs needed
+
+## CMake Integration
+
+``````cmake
+# Add include directory
+include_directories(path/to/streamlib/include)
+
+# Link library
+target_link_libraries(your_target path/to/streamlib/lib/stream.lib)
+
+# For static build, also link dependencies
+if(STATIC_BUILD)
+  target_link_libraries(your_target
+    path/to/streamlib/lib/zlib.lib
+    path/to/streamlib/lib/bz2.lib
+    path/to/streamlib/lib/lzma.lib
+    path/to/streamlib/lib/zstd.lib
+    path/to/streamlib/lib/archive.lib
+  )
+endif()
+``````
+
+## Version
+
+StreamLib v${VERSION}
+Build type: ${{ matrix.config.name }}
+Platform: Windows x64
+
+For more information, see the main README.md
+"@ | Out-File -FilePath "${PKG_DIR}/README.md" -Encoding UTF8
+
+        # Create archive
+        Compress-Archive -Path "${PKG_DIR}" -DestinationPath "${PKG_DIR}.zip"
+
+    - name: Upload Windows package
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: streamlib-*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    name: Build Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -53,16 +277,15 @@ jobs:
           libzstd-dev \
           libarchive-dev
 
-    - name: Install dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install zlib bzip2 xz zstd libarchive
-
     - name: Configure
       run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_ZLIB=ON \
+          -DENABLE_BZIP2=ON \
+          -DENABLE_LZMA=ON \
+          -DENABLE_ZSTD=ON \
+          -DENABLE_LIBARCHIVE=ON
 
     - name: Build
       run: cmake --build build --parallel
@@ -70,28 +293,165 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ./tests/test_basic
-        ./tests/test_compression
-        ./tests/test_walker
-        ./tests/test_archive
+        ctest --output-on-failure
 
     - name: Package
       run: |
-        mkdir -p package/include
-        mkdir -p package/lib
-        mkdir -p package/examples
-        cp -r include/* package/include/
-        cp build/libstream.a package/lib/
-        cp examples/*.c package/examples/
-        cp README.md LICENSE package/
-        tar czf ${{ matrix.asset_name }} package/
+        VERSION="${{ needs.create-release.outputs.version }}"
+        PKG_DIR="streamlib-${VERSION}-linux-x64"
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+        mkdir -p ${PKG_DIR}/{include,lib,examples}
+
+        # Copy files
+        cp -r include/* ${PKG_DIR}/include/
+        cp build/libstream.a ${PKG_DIR}/lib/
+        cp examples/*.c ${PKG_DIR}/examples/
+        cp README.md LICENSE ${PKG_DIR}/
+
+        # Create README for package
+        cat > ${PKG_DIR}/README.md << EOF
+# StreamLib Library v${VERSION} - Linux x64
+
+This package contains the StreamLib static library built for Linux x64.
+
+## Contents
+
+- \`include/\` - Header files
+- \`lib/\` - Static library (libstream.a)
+- \`examples/\` - Example source code
+- \`README.md\` - This file
+- \`LICENSE\` - License information
+
+## Dependencies
+
+This library requires the following system libraries:
+- zlib
+- bzip2
+- liblzma
+- libzstd
+- libarchive
+
+Install on Ubuntu/Debian:
+\`\`\`bash
+sudo apt-get install zlib1g-dev libbz2-dev liblzma-dev libzstd-dev libarchive-dev
+\`\`\`
+
+## Usage
+
+\`\`\`cmake
+include_directories(/path/to/streamlib/include)
+target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
+\`\`\`
+
+## Version
+
+StreamLib v${VERSION}
+Platform: Linux x64
+
+For more information, see the main README.md
+EOF
+
+        tar czf ${PKG_DIR}.tar.gz ${PKG_DIR}/
+
+    - name: Upload Linux package
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: streamlib-*.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: brew install zlib bzip2 xz zstd libarchive
+
+    - name: Configure
+      run: |
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_ZLIB=ON \
+          -DENABLE_BZIP2=ON \
+          -DENABLE_LZMA=ON \
+          -DENABLE_ZSTD=ON \
+          -DENABLE_LIBARCHIVE=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Package
+      run: |
+        VERSION="${{ needs.create-release.outputs.version }}"
+        PKG_DIR="streamlib-${VERSION}-macos-x64"
+
+        mkdir -p ${PKG_DIR}/{include,lib,examples}
+
+        # Copy files
+        cp -r include/* ${PKG_DIR}/include/
+        cp build/libstream.a ${PKG_DIR}/lib/
+        cp examples/*.c ${PKG_DIR}/examples/
+        cp README.md LICENSE ${PKG_DIR}/
+
+        # Create README for package
+        cat > ${PKG_DIR}/README.md << EOF
+# StreamLib Library v${VERSION} - macOS x64
+
+This package contains the StreamLib static library built for macOS x64.
+
+## Contents
+
+- \`include/\` - Header files
+- \`lib/\` - Static library (libstream.a)
+- \`examples/\` - Example source code
+- \`README.md\` - This file
+- \`LICENSE\` - License information
+
+## Dependencies
+
+This library requires the following Homebrew libraries:
+- zlib
+- bzip2
+- xz
+- zstd
+- libarchive
+
+Install with Homebrew:
+\`\`\`bash
+brew install zlib bzip2 xz zstd libarchive
+\`\`\`
+
+## Usage
+
+\`\`\`cmake
+include_directories(/path/to/streamlib/include)
+target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
+\`\`\`
+
+## Version
+
+StreamLib v${VERSION}
+Platform: macOS x64
+
+For more information, see the main README.md
+EOF
+
+        tar czf ${PKG_DIR}.tar.gz ${PKG_DIR}/
+
+    - name: Upload macOS package
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.asset_name }}
-        asset_name: ${{ matrix.asset_name }}
-        asset_content_type: application/gzip
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: streamlib-*.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
