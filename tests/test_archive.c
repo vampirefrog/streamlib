@@ -387,6 +387,275 @@ void test_archive_compressed(void)
 }
 #endif /* HAVE_ZLIB */
 
+/* Test creating a basic TAR archive */
+static void test_archive_create_tar(void)
+{
+	TEST("archive_create_tar");
+
+	const char *test_tar_out = "/tmp/streamio_test_create.tar";
+
+	/* Create output file stream */
+	struct file_stream fs;
+	int ret = file_stream_open(&fs, test_tar_out,
+				    O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (ret < 0)
+		FAIL("Failed to open output file");
+
+	/* Create archive stream */
+	struct archive_stream ar;
+	ret = archive_stream_open_write(&ar, &fs.base,
+					 STREAMIO_ARCHIVE_TAR_PAX, 1);
+	if (ret < 0) {
+		stream_close(&fs.base);
+		FAIL("Failed to open archive for writing");
+	}
+
+	/* Add first entry */
+	const char *content1 = "This is file 1 content";
+	size_t len1 = strlen(content1);
+	ret = archive_stream_new_entry(&ar, "test1.txt", S_IFREG | 0644, len1);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to create entry 1");
+	}
+
+	ssize_t written = archive_stream_write_data(&ar, content1, len1);
+	if (written != (ssize_t)len1) {
+		archive_stream_close(&ar);
+		FAIL("Failed to write entry 1 data");
+	}
+
+	ret = archive_stream_finish_entry(&ar);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to finish entry 1");
+	}
+
+	/* Add second entry */
+	const char *content2 = "This is file 2 content with more text";
+	size_t len2 = strlen(content2);
+	ret = archive_stream_new_entry(&ar, "subdir/test2.txt", S_IFREG | 0644, len2);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to create entry 2");
+	}
+
+	written = archive_stream_write_data(&ar, content2, len2);
+	if (written != (ssize_t)len2) {
+		archive_stream_close(&ar);
+		FAIL("Failed to write entry 2 data");
+	}
+
+	ret = archive_stream_finish_entry(&ar);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to finish entry 2");
+	}
+
+	/* Close and finalize */
+	archive_stream_close(&ar);
+
+	/* Verify archive was created */
+	struct stat st;
+	if (stat(test_tar_out, &st) < 0)
+		FAIL("Output file not created");
+
+	if (st.st_size == 0)
+		FAIL("Output file is empty");
+
+	/* Verify with libarchive by reading it back */
+	struct file_stream fs_read;
+	ret = file_stream_open(&fs_read, test_tar_out, O_RDONLY, 0);
+	if (ret < 0)
+		FAIL("Failed to open created archive");
+
+	struct archive_stream ar_read;
+	ret = archive_stream_open(&ar_read, &fs_read.base, 1);
+	if (ret < 0) {
+		stream_close(&fs_read.base);
+		FAIL("Failed to open created archive for reading");
+	}
+
+	/* Count entries */
+	int entry_count = 0;
+	struct archive *a = ar_read.archive;
+	struct archive_entry *entry;
+	while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+		entry_count++;
+		archive_read_data_skip(a);
+	}
+
+	archive_stream_close(&ar_read);
+
+	if (entry_count != 2)
+		FAIL("Wrong number of entries in created archive");
+
+	/* Clean up */
+	unlink(test_tar_out);
+
+	PASS();
+}
+
+/* Test creating a ZIP archive */
+static void test_archive_create_zip(void)
+{
+	TEST("archive_create_zip");
+
+	const char *test_zip_out = "/tmp/streamio_test_create.zip";
+
+	/* Create output file stream */
+	struct file_stream fs;
+	int ret = file_stream_open(&fs, test_zip_out,
+				    O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (ret < 0)
+		FAIL("Failed to open output file");
+
+	/* Create ZIP archive stream */
+	struct archive_stream ar;
+	ret = archive_stream_open_write(&ar, &fs.base,
+					 STREAMIO_ARCHIVE_ZIP, 1);
+	if (ret < 0) {
+		stream_close(&fs.base);
+		FAIL("Failed to open ZIP archive for writing");
+	}
+
+	/* Add entry */
+	const char *content = "ZIP file content";
+	size_t len = strlen(content);
+	ret = archive_stream_new_entry(&ar, "zipfile.txt", S_IFREG | 0644, len);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to create ZIP entry");
+	}
+
+	ssize_t written = archive_stream_write_data(&ar, content, len);
+	if (written != (ssize_t)len) {
+		archive_stream_close(&ar);
+		FAIL("Failed to write ZIP entry data");
+	}
+
+	ret = archive_stream_finish_entry(&ar);
+	if (ret < 0) {
+		archive_stream_close(&ar);
+		FAIL("Failed to finish ZIP entry");
+	}
+
+	/* Close and finalize */
+	archive_stream_close(&ar);
+
+	/* Verify archive was created */
+	struct stat st;
+	if (stat(test_zip_out, &st) < 0)
+		FAIL("ZIP file not created");
+
+	if (st.st_size == 0)
+		FAIL("ZIP file is empty");
+
+	/* Read it back */
+	struct file_stream fs_read;
+	ret = file_stream_open(&fs_read, test_zip_out, O_RDONLY, 0);
+	if (ret < 0)
+		FAIL("Failed to open created ZIP");
+
+	struct archive_stream ar_read;
+	ret = archive_stream_open(&ar_read, &fs_read.base, 1);
+	if (ret < 0) {
+		stream_close(&fs_read.base);
+		FAIL("Failed to open created ZIP for reading");
+	}
+
+	archive_stream_close(&ar_read);
+
+	/* Clean up */
+	unlink(test_zip_out);
+
+	PASS();
+}
+
+/* Test round-trip: create archive, read it back, verify content */
+static void test_archive_roundtrip(void)
+{
+	TEST("archive_roundtrip");
+
+	const char *test_archive = "/tmp/streamio_test_roundtrip.tar";
+	const char *test_content = "Round-trip test content";
+	const char *test_filename = "roundtrip.txt";
+
+	/* Create archive */
+	struct file_stream fs_write;
+	int ret = file_stream_open(&fs_write, test_archive,
+				    O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (ret < 0)
+		FAIL("Failed to open output file");
+
+	struct archive_stream ar_write;
+	ret = archive_stream_open_write(&ar_write, &fs_write.base,
+					 STREAMIO_ARCHIVE_TAR_PAX, 1);
+	if (ret < 0) {
+		stream_close(&fs_write.base);
+		FAIL("Failed to open archive for writing");
+	}
+
+	size_t len = strlen(test_content);
+	ret = archive_stream_new_entry(&ar_write, test_filename, S_IFREG | 0644, len);
+	if (ret < 0) {
+		archive_stream_close(&ar_write);
+		FAIL("Failed to create entry");
+	}
+
+	archive_stream_write_data(&ar_write, test_content, len);
+	archive_stream_finish_entry(&ar_write);
+	archive_stream_close(&ar_write);
+
+	/* Read archive back */
+	struct file_stream fs_read;
+	ret = file_stream_open(&fs_read, test_archive, O_RDONLY, 0);
+	if (ret < 0)
+		FAIL("Failed to open created archive");
+
+	struct archive_stream ar_read;
+	ret = archive_stream_open(&ar_read, &fs_read.base, 1);
+	if (ret < 0) {
+		stream_close(&fs_read.base);
+		FAIL("Failed to open archive for reading");
+	}
+
+	/* Read entry and verify content */
+	struct archive *a = ar_read.archive;
+	struct archive_entry *entry;
+	ret = archive_read_next_header(a, &entry);
+	if (ret != ARCHIVE_OK) {
+		archive_stream_close(&ar_read);
+		FAIL("Failed to read entry header");
+	}
+
+	const char *pathname = archive_entry_pathname(entry);
+	if (strcmp(pathname, test_filename) != 0) {
+		archive_stream_close(&ar_read);
+		FAIL("Wrong filename in archive");
+	}
+
+	/* Read content */
+	char buffer[256];
+	la_ssize_t nread = archive_read_data(a, buffer, sizeof(buffer));
+	if (nread != (la_ssize_t)len) {
+		archive_stream_close(&ar_read);
+		FAIL("Wrong content length");
+	}
+
+	if (memcmp(buffer, test_content, len) != 0) {
+		archive_stream_close(&ar_read);
+		FAIL("Content mismatch");
+	}
+
+	archive_stream_close(&ar_read);
+
+	/* Clean up */
+	unlink(test_archive);
+
+	PASS();
+}
+
 #endif /* HAVE_LIBARCHIVE */
 
 int main(void)
@@ -412,6 +681,11 @@ int main(void)
 #ifdef HAVE_ZLIB
 	test_archive_compressed();
 #endif
+
+	/* Archive creation tests */
+	test_archive_create_tar();
+	test_archive_create_zip();
+	test_archive_roundtrip();
 #else
 	printf("SKIP: Archive creation tests (tar command not available on Windows)\n");
 #endif

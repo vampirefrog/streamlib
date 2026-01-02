@@ -235,6 +235,17 @@ enum compression_type {
 	COMPRESS_ZSTD,      /* Requires ZSTD */
 };
 
+/* Archive formats for creation */
+enum streamio_archive_format {
+	STREAMIO_ARCHIVE_TAR_USTAR = 0,  /* Standard UNIX tar */
+	STREAMIO_ARCHIVE_TAR_PAX,        /* POSIX.1-2001 tar (modern, supports long names) */
+	STREAMIO_ARCHIVE_ZIP,            /* ZIP format */
+	STREAMIO_ARCHIVE_7ZIP,           /* 7-Zip */
+	STREAMIO_ARCHIVE_CPIO,           /* CPIO */
+	STREAMIO_ARCHIVE_SHAR,           /* Shell archive */
+	STREAMIO_ARCHIVE_ISO9660,        /* ISO disk image */
+};
+
 /* Compression stream structure */
 struct compression_stream {
 	struct stream base;
@@ -281,9 +292,13 @@ struct archive_stream {
 	struct stream *underlying;   /* Stream containing archive data */
 	int owns_underlying;
 
-	void *archive;               /* libarchive handle */
-	void *entry;                 /* Current entry */
-	int entry_open;              /* Is an entry currently open for reading */
+	void *archive;               /* libarchive handle (read or write) */
+	void *entry;                 /* Current entry being read/written */
+	int entry_open;              /* Is an entry currently open */
+
+	/* Write-specific state */
+	int is_writing;              /* 1 = write mode, 0 = read mode */
+	unsigned char write_buffer[16384];  /* Output buffer for write callbacks */
 };
 
 /* ============================================================================
@@ -535,6 +550,26 @@ ssize_t archive_stream_read_data(struct archive_stream *stream,
 
 /* Close archive stream */
 int archive_stream_close(struct archive_stream *stream);
+
+/* Archive creation */
+int archive_stream_open_write(struct archive_stream *stream,
+			       struct stream *underlying,
+			       enum streamio_archive_format format,
+			       int owns_underlying);
+
+int archive_stream_new_entry(struct archive_stream *stream,
+			      const char *pathname,
+			      mode_t mode,
+			      off64_t size);
+
+ssize_t archive_stream_write_data(struct archive_stream *stream,
+				   const void *buf,
+				   size_t count);
+
+int archive_stream_finish_entry(struct archive_stream *stream);
+
+/* Format availability */
+int archive_format_available(enum streamio_archive_format format);
 #endif /* HAVE_LIBARCHIVE */
 
 /* ============================================================================

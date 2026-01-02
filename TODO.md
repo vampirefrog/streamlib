@@ -84,12 +84,11 @@
 
 ## Future Enhancements
 - [x] Write support for compression streams - Fully implemented and documented
-- [ ] Create/modify archive support (currently read-only)
+- [x] Create/modify archive support - Fully implemented for all libarchive formats (TAR, ZIP, 7z, CPIO, ISO9660, SHAR)
 - [ ] Additional compression formats (lz4, brotli)
 - [ ] Async I/O support
 - [ ] Network stream support (HTTP, FTP)
 - [ ] Encryption/decryption streams
 
 ## Known Limitations
-- Archives: Read-only (no creation/modification support yet)
 - Large file tests: Not yet tested with files >4GB

@@ -29,6 +29,12 @@ static int archive_stream_close_callback(struct archive *a, void *client_data);
 static la_ssize_t archive_stream_read_callback(struct archive *a, void *client_data,
 					       const void **buffer);
 
+/* Callback functions for libarchive to write to our stream */
+static int stream_archive_write_open(struct archive *a, void *client_data);
+static la_ssize_t stream_archive_write_data(struct archive *a, void *client_data,
+					     const void *buffer, size_t length);
+static int stream_archive_write_close(struct archive *a, void *client_data);
+
 /* Internal buffer for reading from underlying stream */
 #define ARCHIVE_BUFFER_SIZE 16384
 
@@ -117,6 +123,34 @@ static int archive_stream_close_callback(struct archive *a, void *client_data)
 	return ARCHIVE_OK;
 }
 
+/* Write callbacks for archive creation */
+static int stream_archive_write_open(struct archive *a, void *client_data)
+{
+	(void)a;
+	(void)client_data;
+	return ARCHIVE_OK;
+}
+
+static la_ssize_t stream_archive_write_data(struct archive *a, void *client_data,
+					     const void *buffer, size_t length)
+{
+	struct archive_stream *stream = client_data;
+	(void)a;
+
+	ssize_t written = stream_write(stream->underlying, buffer, length);
+	if (written < 0)
+		return -1;
+
+	return written;
+}
+
+static int stream_archive_write_close(struct archive *a, void *client_data)
+{
+	(void)a;
+	(void)client_data;
+	return ARCHIVE_OK;
+}
+
 /* Walk through all entries in archive */
 int archive_stream_walk(struct archive_stream *stream,
 			archive_walk_fn callback,
@@ -195,14 +229,179 @@ ssize_t archive_stream_read_data(struct archive_stream *stream,
 	return nread;
 }
 
+/* Open archive for writing */
+int archive_stream_open_write(struct archive_stream *stream,
+			      struct stream *underlying,
+			      enum streamio_archive_format format,
+			      int owns_underlying)
+{
+	memset(stream, 0, sizeof(*stream));
+
+	/* Set write capability */
+	unsigned int caps = STREAM_CAP_WRITE;
+	stream_init(&stream->base, NULL, O_WRONLY, caps);
+
+	stream->underlying = underlying;
+	stream->owns_underlying = owns_underlying;
+	stream->is_writing = 1;
+
+	/* Create libarchive write handle */
+	struct archive *a = archive_write_new();
+	if (!a)
+		return -ENOMEM;
+
+	/* Set format based on enum */
+	int ret;
+	switch (format) {
+	case STREAMIO_ARCHIVE_TAR_USTAR:
+		ret = archive_write_set_format_ustar(a);
+		break;
+	case STREAMIO_ARCHIVE_TAR_PAX:
+		ret = archive_write_set_format_pax(a);
+		break;
+	case STREAMIO_ARCHIVE_ZIP:
+		ret = archive_write_set_format_zip(a);
+		break;
+	case STREAMIO_ARCHIVE_7ZIP:
+		ret = archive_write_set_format_7zip(a);
+		break;
+	case STREAMIO_ARCHIVE_CPIO:
+		ret = archive_write_set_format_cpio(a);
+		break;
+	case STREAMIO_ARCHIVE_SHAR:
+		ret = archive_write_set_format_shar(a);
+		break;
+	case STREAMIO_ARCHIVE_ISO9660:
+		ret = archive_write_set_format_iso9660(a);
+		break;
+	default:
+		archive_write_free(a);
+		return -EINVAL;
+	}
+
+	if (ret != ARCHIVE_OK) {
+		archive_write_free(a);
+		return -EIO;
+	}
+
+	/* Open with callbacks */
+	ret = archive_write_open(a, stream,
+				 stream_archive_write_open,
+				 stream_archive_write_data,
+				 stream_archive_write_close);
+	if (ret != ARCHIVE_OK) {
+		archive_write_free(a);
+		return -EIO;
+	}
+
+	stream->archive = a;
+	return 0;
+}
+
+/* Create a new entry in the archive */
+int archive_stream_new_entry(struct archive_stream *stream,
+			     const char *pathname,
+			     mode_t mode,
+			     off64_t size)
+{
+	if (!stream->is_writing)
+		return -EINVAL;
+
+	if (stream->entry_open)
+		return -EBUSY;  /* Must finish previous entry first */
+
+	struct archive_entry *entry = archive_entry_new();
+	if (!entry)
+		return -ENOMEM;
+
+	archive_entry_set_pathname(entry, pathname);
+	archive_entry_set_mode(entry, mode);
+	archive_entry_set_size(entry, size);
+
+	int ret = archive_write_header(stream->archive, entry);
+	if (ret != ARCHIVE_OK) {
+		archive_entry_free(entry);
+		return -EIO;
+	}
+
+	stream->entry = entry;
+	stream->entry_open = 1;
+	return 0;
+}
+
+/* Write data to current entry */
+ssize_t archive_stream_write_data(struct archive_stream *stream,
+				  const void *buf,
+				  size_t count)
+{
+	if (!stream->is_writing)
+		return -EINVAL;
+
+	if (!stream->entry_open)
+		return -EINVAL;  /* Must call new_entry first */
+
+	la_ssize_t written = archive_write_data(stream->archive, buf, count);
+	if (written < 0)
+		return -EIO;
+
+	return written;
+}
+
+/* Finish current entry */
+int archive_stream_finish_entry(struct archive_stream *stream)
+{
+	if (!stream->is_writing)
+		return -EINVAL;
+
+	if (!stream->entry_open)
+		return -EINVAL;
+
+	int ret = archive_write_finish_entry(stream->archive);
+	if (ret != ARCHIVE_OK)
+		return -EIO;
+
+	if (stream->entry) {
+		archive_entry_free(stream->entry);
+		stream->entry = NULL;
+	}
+
+	stream->entry_open = 0;
+	return 0;
+}
+
+/* Check if archive format is available */
+int archive_format_available(enum streamio_archive_format format)
+{
+	/* All formats are available if libarchive is present */
+	(void)format;
+	return 1;
+}
+
 /* Close archive stream */
 int archive_stream_close(struct archive_stream *stream)
 {
-	if (stream->archive) {
-		archive_read_free(stream->archive);
-		stream->archive = NULL;
+	if (!stream->archive)
+		return 0;
+
+	/* Finish any open entry */
+	if (stream->entry_open && stream->is_writing) {
+		archive_write_finish_entry(stream->archive);
+		if (stream->entry) {
+			archive_entry_free(stream->entry);
+			stream->entry = NULL;
+		}
 	}
 
+	/* Finalize archive */
+	if (stream->is_writing) {
+		archive_write_close(stream->archive);
+		archive_write_free(stream->archive);
+	} else {
+		archive_read_free(stream->archive);
+	}
+	stream->archive = NULL;
+
+	/* Close underlying stream if we own it */
 	if (stream->owns_underlying && stream->underlying) {
 		stream_close(stream->underlying);
 		stream->underlying = NULL;

@@ -249,7 +249,10 @@ stream_close(&cs.base);  // Finalization happens here
 
 ### Archive Streams
 
-Read archive entries (requires libarchive):
+Read and create archives in various formats (requires libarchive).
+Supports both reading existing archives and creating new ones.
+
+#### Reading Archives
 
 ```c
 struct archive_stream {
@@ -280,7 +283,106 @@ struct archive_entry_info {
 };
 ```
 
-**Supported formats**: ZIP, TAR, 7z, RAR, and more (via libarchive)
+#### Creating Archives
+
+```c
+// Archive formats
+enum streamio_archive_format {
+    STREAMIO_ARCHIVE_TAR_USTAR,  // Standard UNIX tar
+    STREAMIO_ARCHIVE_TAR_PAX,    // Modern tar (supports long filenames)
+    STREAMIO_ARCHIVE_ZIP,        // ZIP format
+    STREAMIO_ARCHIVE_7ZIP,       // 7-Zip
+    STREAMIO_ARCHIVE_CPIO,       // CPIO
+    STREAMIO_ARCHIVE_SHAR,       // Shell archive
+    STREAMIO_ARCHIVE_ISO9660,    // ISO disk image
+};
+
+// Create archive for writing
+int archive_stream_open_write(struct archive_stream *stream,
+                              struct stream *underlying,
+                              enum streamio_archive_format format,
+                              int owns_underlying);
+
+// Add new entry to archive
+int archive_stream_new_entry(struct archive_stream *stream,
+                             const char *pathname,
+                             mode_t mode,
+                             off64_t size);
+
+// Write data to current entry
+ssize_t archive_stream_write_data(struct archive_stream *stream,
+                                  const void *buf,
+                                  size_t count);
+
+// Finish current entry
+int archive_stream_finish_entry(struct archive_stream *stream);
+
+// Check if format is available
+int archive_format_available(enum streamio_archive_format format);
+```
+
+**Example - Creating a TAR archive:**
+
+```c
+#ifdef HAVE_LIBARCHIVE
+struct file_stream out;
+struct archive_stream ar;
+
+// Create tar archive
+file_stream_open(&out, "output.tar", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+archive_stream_open_write(&ar, &out.base, STREAMIO_ARCHIVE_TAR_PAX, 1);
+
+// Add first file
+const char *data1 = "File 1 content";
+archive_stream_new_entry(&ar, "file1.txt", S_IFREG | 0644, strlen(data1));
+archive_stream_write_data(&ar, data1, strlen(data1));
+archive_stream_finish_entry(&ar);
+
+// Add second file
+const char *data2 = "File 2 content";
+archive_stream_new_entry(&ar, "dir/file2.txt", S_IFREG | 0644, strlen(data2));
+archive_stream_write_data(&ar, data2, strlen(data2));
+archive_stream_finish_entry(&ar);
+
+// Close and finalize
+archive_stream_close(&ar);
+#endif
+```
+
+**Example - Creating compressed archives (tar.gz, tar.bz2, etc.):**
+
+```c
+// Stack compression and archive streams
+struct file_stream fs;
+struct compression_stream cs;
+struct archive_stream ar;
+
+file_stream_open(&fs, "output.tar.gz", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+gzip_stream_init(&cs, &fs.base, O_WRONLY, 1);
+archive_stream_open_write(&ar, &cs.base, STREAMIO_ARCHIVE_TAR_PAX, 1);
+
+// Add entries...
+const char *data = "Compressed archive content";
+archive_stream_new_entry(&ar, "file.txt", S_IFREG | 0644, strlen(data));
+archive_stream_write_data(&ar, data, strlen(data));
+archive_stream_finish_entry(&ar);
+
+// Close (also closes cs and fs)
+archive_stream_close(&ar);
+```
+
+**Supported formats:**
+
+| Format | Read | Write | Notes |
+|--------|------|-------|-------|
+| TAR (ustar) | ✓ | ✓ | Standard UNIX tar |
+| TAR (pax) | ✓ | ✓ | Modern tar, supports long filenames |
+| ZIP | ✓ | ✓ | Universal format |
+| 7-Zip | ✓ | ✓ | High compression |
+| CPIO | ✓ | ✓ | Old UNIX format |
+| RAR | ✓ | ✗ | Read-only (proprietary) |
+| ISO9660 | ✓ | ✓ | Disk images |
+| SHAR | ✓ | ✓ | Shell archive |
 
 ### Path Walker
 

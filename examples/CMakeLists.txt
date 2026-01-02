@@ -31,10 +31,15 @@ if(HAVE_COMPRESSION)
     target_link_libraries(compress_text stream)
 endif()
 
-# List archive example
+# Archive examples
 if(HAVE_LIBARCHIVE)
+    # List archive contents
     add_executable(list_archive list_archive.c)
     target_link_libraries(list_archive stream)
+
+    # Create archive
+    add_executable(create_archive create_archive.c)
+    target_link_libraries(create_archive stream)
 endif()
 
 # MIDI file generator (in-memory track generation)
