@@ -1,4 +1,5 @@
 ![CI](https://github.com/vampirefrog/streamlib/actions/workflows/ci.yml/badge.svg)
+![Release](https://github.com/vampirefrog/streamlib/actions/workflows/release.yml/badge.svg)
 
 # StreamLib - Cross-Platform Stream I/O Library
 
