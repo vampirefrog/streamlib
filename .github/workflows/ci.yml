@@ -127,12 +127,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache vcpkg packages
+      if: matrix.config == 'full'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ env.VCPKG_INSTALLATION_ROOT }}\installed
+          ${{ env.VCPKG_INSTALLATION_ROOT }}\packages
+        key: vcpkg-${{ runner.os }}-${{ hashFiles('**/vcpkg.json') }}-${{ hashFiles('.github/workflows/ci.yml') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-
+
     - name: Install dependencies (full)
       if: matrix.config == 'full'
       run: |
         vcpkg install zlib bzip2 liblzma zstd libarchive --triplet x64-windows
-      env:
-        VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     - name: Configure (full)
       if: matrix.config == 'full'
