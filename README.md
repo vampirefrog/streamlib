@@ -23,11 +23,11 @@ A unified stream-based I/O library with optional support for compression and arc
 ### Minimal Build (Core Only)
 ```bash
 mkdir build && cd build
-cmake -DSTREAM_ENABLE_ZLIB=OFF \
-      -DSTREAM_ENABLE_BZIP2=OFF \
-      -DSTREAM_ENABLE_LZMA=OFF \
-      -DSTREAM_ENABLE_ZSTD=OFF \
-      -DSTREAM_ENABLE_LIBARCHIVE=OFF ..
+cmake -DENABLE_ZLIB=OFF \
+      -DENABLE_BZIP2=OFF \
+      -DENABLE_LZMA=OFF \
+      -DENABLE_ZSTD=OFF \
+      -DENABLE_LIBARCHIVE=OFF ..
 make
 ```
 
@@ -40,11 +40,11 @@ make
 
 ### Build Options
 
-- `STREAM_ENABLE_ZLIB` - Enable gzip/zlib support (default: ON)
-- `STREAM_ENABLE_BZIP2` - Enable bzip2 support (default: ON)
-- `STREAM_ENABLE_LZMA` - Enable xz/lzma support (default: ON)
-- `STREAM_ENABLE_ZSTD` - Enable zstd support (default: ON)
-- `STREAM_ENABLE_LIBARCHIVE` - Enable archive support (default: ON)
+- `ENABLE_ZLIB` - Enable gzip/zlib support (default: ON)
+- `ENABLE_BZIP2` - Enable bzip2 support (default: ON)
+- `ENABLE_LZMA` - Enable xz/lzma support (default: ON)
+- `ENABLE_ZSTD` - Enable zstd support (default: ON)
+- `ENABLE_LIBARCHIVE` - Enable archive support (default: ON)
 - `STREAM_BUILD_TESTS` - Build test suite (default: ON)
 - `STREAM_BUILD_EXAMPLES` - Build examples (default: ON)
 
@@ -66,7 +66,7 @@ stream_close(&fs.base);
 ```c
 // Automatically detect and decompress any supported format
 // Works with: .gz, .bz2, .xz, .zst, or ANY file with valid compression headers
-#ifdef STREAM_HAVE_ZLIB
+#ifdef HAVE_COMPRESSION
 struct file_stream fs;
 struct compression_stream cs;
 
@@ -108,6 +108,191 @@ walk_path("music.zip", callback, NULL,
 | zstd   | .zst      | `28 b5 2f fd` | ✓ Supported |
 
 **Note**: All formats are detected by magic bytes, so files with non-standard extensions (e.g., `.vgz`, `.vbz2`) are automatically recognized.
+
+## API Reference
+
+### Core Stream Interface
+
+All stream types share a common base interface:
+
+```c
+struct stream; // Opaque struct which works as the base class for all other stream types
+
+// Common operations (work on all stream types)
+ssize_t stream_read(struct stream *s, void *buf, size_t count);
+ssize_t stream_write(struct stream *s, const void *buf, size_t count);
+off64_t stream_seek(struct stream *s, off64_t offset, int whence);
+off64_t stream_tell(struct stream *s);
+off64_t stream_size(struct stream *s);
+void   *stream_mmap(struct stream *s, off64_t start, size_t length, int prot);
+int     stream_munmap(struct stream *s, void *addr, size_t length);
+int     stream_flush(struct stream *s);
+int     stream_close(struct stream *s);
+```
+
+### File Streams
+
+File-backed streams with native OS I/O:
+
+```c
+struct file_stream {
+    struct stream base;
+    // ...
+};
+
+int file_stream_open(struct file_stream *stream, const char *path,
+                     int flags, mode_t mode);
+int file_stream_from_fd(struct file_stream *stream, int fd, int flags);
+```
+
+### Memory Streams
+
+In-memory buffers with stream interface:
+
+```c
+struct mem_stream {
+    struct stream base;
+    // ...
+};
+
+// Dynamic allocation (grows as needed)
+int mem_stream_init_dynamic(struct mem_stream *stream, size_t initial_capacity);
+
+// Use existing buffer
+int mem_stream_init_buffer(struct mem_stream *stream, void *buf,
+                           size_t size, int writable);
+
+// Heap-allocated with ownership
+struct mem_stream *mem_stream_new(size_t initial_capacity);
+void mem_stream_free(struct mem_stream *stream);
+```
+
+### Compression Streams
+
+Transparent compression/decompression (requires compression libraries):
+
+```c
+struct compression_stream {
+    struct stream base;
+    // ...
+};
+
+// Specific format
+int compression_stream_init(struct compression_stream *stream,
+                            struct stream *underlying,
+                            enum compression_type type,
+                            int flags, int owns_underlying);
+
+// Auto-detect format by magic bytes
+int compression_stream_auto(struct compression_stream *stream,
+                            struct stream *underlying,
+                            int owns_underlying);
+
+// Convenience: auto-decompress or pass-through
+struct stream *stream_auto_decompress(struct stream *source,
+                                      struct compression_stream *cs_storage,
+                                      int owns_source);
+```
+
+**Supported formats**: gzip (`.gz`), bzip2 (`.bz2`), xz (`.xz`), zstd (`.zst`)
+
+### Archive Streams
+
+Read archive entries (requires libarchive):
+
+```c
+struct archive_stream {
+    struct stream base;
+    // ...
+};
+
+int archive_stream_open(struct archive_stream *stream,
+                        struct stream *underlying,
+                        int owns_underlying);
+
+void archive_stream_close(struct archive_stream *stream);
+
+// Walk archive entries
+typedef int (*archive_walker_fn)(const struct archive_entry_info *entry,
+                                 void *userdata);
+
+int archive_stream_walk(struct archive_stream *stream,
+                       archive_walker_fn callback,
+                       void *userdata);
+
+struct archive_entry_info {
+    const char *pathname;
+    off64_t size;
+    mode_t mode;
+    time_t mtime;
+    int is_dir;
+};
+```
+
+**Supported formats**: ZIP, TAR, 7z, RAR, and more (via libarchive)
+
+### Path Walker
+
+Recursive directory/archive traversal:
+
+```c
+struct walker_entry {
+    const char *path;           // Full path
+    const char *name;           // Base name
+    off64_t size;
+    mode_t mode;
+    time_t mtime;
+    int is_dir;
+    int is_archive_entry;       // From archive vs filesystem
+    int depth;
+    struct stream *stream;      // Open stream (read-ready)
+    void *internal_data;
+};
+
+typedef int (*walker_fn)(const struct walker_entry *entry, void *userdata);
+
+int walk_path(const char *path, walker_fn callback, void *userdata,
+              unsigned int flags);
+```
+
+**Flags**:
+- `WALK_RECURSE_DIRS` - Recurse into subdirectories
+- `WALK_EXPAND_ARCHIVES` - Walk inside archive files
+- `WALK_DECOMPRESS` - Auto-decompress compressed files
+- `WALK_FILTER_FILES` - Only invoke callback for files
+- `WALK_FILTER_DIRS` - Only invoke callback for directories
+- `WALK_FOLLOW_SYMLINKS` - Follow symbolic links
+
+### Feature Detection
+
+```c
+// Check if feature is available at runtime
+int stream_has_feature(enum stream_feature feature);
+
+// Features
+enum stream_feature {
+    STREAM_FEAT_LIBARCHIVE,
+    STREAM_FEAT_ZLIB,
+    STREAM_FEAT_BZIP2,
+    STREAM_FEAT_LZMA,
+    STREAM_FEAT_ZSTD
+};
+
+// Version info
+const char *stream_get_version(void);
+const char *stream_get_features_string(void);
+```
+
+### Compile-Time Feature Macros
+
+```c
+#ifdef HAVE_COMPRESSION    // Any compression library available
+#ifdef HAVE_ZLIB           // gzip support
+#ifdef HAVE_BZIP2          // bzip2 support
+#ifdef HAVE_LZMA           // xz/lzma support
+#ifdef HAVE_ZSTD           // zstd support
+#ifdef HAVE_LIBARCHIVE     // Archive support
+```
 
 ## Examples
 
@@ -231,10 +416,6 @@ All tests include verification of:
 - Transparent decompression in archives
 - Round-trip compression/decompression
 
-## Documentation
-
-See [docs/API.md](docs/API.md) for full API documentation.
-
 ## License
 
-MIT License - See LICENSE file for details.
+Licensed under the GNU General Public License v3.0 - See LICENSE file for details.
