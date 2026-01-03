@@ -14,6 +14,11 @@ option(BUILD_EXAMPLES "Build examples" ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Windows DLL support - export all symbols automatically
+if(WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 # Large file support
 add_definitions(-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64)
 
