@@ -94,9 +94,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-
     # Export GitHub Actions cache environment variables for vcpkg
     - name: Setup vcpkg binary caching
       uses: actions/github-script@v7
@@ -104,6 +101,9 @@ jobs:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
 
     # Dependencies are declared in vcpkg.json and installed automatically by CMake
     - name: Configure CMake
