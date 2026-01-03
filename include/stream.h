@@ -126,9 +126,7 @@ extern "C" {
  * VERSION & LIBRARY INFO
  * ============================================================================ */
 
-#define STREAM_VERSION_MAJOR 1
-#define STREAM_VERSION_MINOR 0
-#define STREAM_VERSION_PATCH 0
+/* Version is defined in config.h (generated from CMakeLists.txt) */
 
 /* Forward declarations */
 struct stream;
