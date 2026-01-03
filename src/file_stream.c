@@ -83,7 +83,8 @@ int file_stream_open(struct file_stream *stream, const char *path, int flags,
 			((flags & O_TRUNC) ? CREATE_ALWAYS : OPEN_ALWAYS) : OPEN_EXISTING;
 	}
 
-	if (flags & O_TRUNC)
+	/* O_TRUNC without O_CREAT means truncate existing file */
+	if ((flags & O_TRUNC) && !(flags & O_CREAT))
 		creation_disposition = TRUNCATE_EXISTING;
 
 	stream->handle = CreateFileA(path, desired_access, share_mode,
