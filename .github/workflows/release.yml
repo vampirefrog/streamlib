@@ -190,63 +190,25 @@ jobs:
         Copy-Item README.md, LICENSE "${PKG_DIR}/"
 
         # Create README for the package
-        @"
-# StreamLib Library v${VERSION} - Windows x64 (${{ matrix.config.name }})
-
-This package contains the StreamLib library built for Windows x64.
-
-## Contents
-
-- ``include/`` - Header files
-- ``lib/`` - Library files (.lib)
-- ``bin/`` - DLL files (DLL build only)
-- ``examples/`` - Example source code
-- ``README.md`` - This file
-- ``LICENSE`` - License information
-
-## Usage
-
-### For DLL build:
-1. Add ``include/`` to your include path
-2. Add ``lib/`` to your library path
-3. Link against ``stream.lib``
-4. Add ``bin/`` to your PATH or copy DLLs to your application directory
-
-### For static build:
-1. Add ``include/`` to your include path
-2. Add ``lib/`` to your library path
-3. Link against: stream.lib, zlib.lib, bz2.lib, lzma.lib, zstd.lib, archive.lib
-4. No runtime DLLs needed
-
-## CMake Integration
-
-``````cmake
-# Add include directory
-include_directories(path/to/streamlib/include)
-
-# Link library
-target_link_libraries(your_target path/to/streamlib/lib/stream.lib)
-
-# For static build, also link dependencies
-if(STATIC_BUILD)
-  target_link_libraries(your_target
-    path/to/streamlib/lib/zlib.lib
-    path/to/streamlib/lib/bz2.lib
-    path/to/streamlib/lib/lzma.lib
-    path/to/streamlib/lib/zstd.lib
-    path/to/streamlib/lib/archive.lib
-  )
-endif()
-``````
-
-## Version
-
-StreamLib v${VERSION}
-Build type: ${{ matrix.config.name }}
-Platform: Windows x64
-
-For more information, see the main README.md
-"@ | Out-File -FilePath "${PKG_DIR}/README.md" -Encoding UTF8
+        $BUILD_TYPE = "${{ matrix.config.name }}"
+        $readme = "${PKG_DIR}/README.md"
+        "StreamLib Library v${VERSION} - Windows x64 (${BUILD_TYPE})" | Out-File -FilePath $readme -Encoding UTF8
+        "===============================================================" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "This package contains the StreamLib library built for Windows x64." | Out-File -FilePath $readme -Append -Encoding UTF8
+        "" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "CONTENTS" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "--------" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "- include/ - Header files" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "- lib/ - Library files (.lib)" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "- bin/ - DLL files (DLL build only)" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "- examples/ - Example source code" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "USAGE" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "For DLL build: Add include/ and lib/ to your paths, link against stream.lib" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "For static build: Link against stream.lib and all dependency .lib files" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "" | Out-File -FilePath $readme -Append -Encoding UTF8
+        "VERSION: StreamLib v${VERSION} (${BUILD_TYPE}) - Windows x64" | Out-File -FilePath $readme -Append -Encoding UTF8
 
         # Create archive
         Compress-Archive -Path "${PKG_DIR}" -DestinationPath "${PKG_DIR}.zip"
@@ -309,47 +271,30 @@ For more information, see the main README.md
         cp README.md LICENSE ${PKG_DIR}/
 
         # Create README for package
-        cat > ${PKG_DIR}/README.md << EOF
-# StreamLib Library v${VERSION} - Linux x64
+        cat > ${PKG_DIR}/README.md << 'EOFREADME'
+        StreamLib Library - Linux x64
+        ==============================
 
-This package contains the StreamLib static library built for Linux x64.
+        CONTENTS
+        --------
+        - include/ - Header files
+        - lib/ - Static library (libstream.a)
+        - examples/ - Example source code
 
-## Contents
+        DEPENDENCIES
+        ------------
+        This library requires: zlib, bzip2, liblzma, libzstd, libarchive
 
-- \`include/\` - Header files
-- \`lib/\` - Static library (libstream.a)
-- \`examples/\` - Example source code
-- \`README.md\` - This file
-- \`LICENSE\` - License information
+        Install on Ubuntu/Debian:
+          sudo apt-get install zlib1g-dev libbz2-dev liblzma-dev libzstd-dev libarchive-dev
 
-## Dependencies
+        USAGE
+        -----
+        include_directories(/path/to/streamlib/include)
+        target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
 
-This library requires the following system libraries:
-- zlib
-- bzip2
-- liblzma
-- libzstd
-- libarchive
-
-Install on Ubuntu/Debian:
-\`\`\`bash
-sudo apt-get install zlib1g-dev libbz2-dev liblzma-dev libzstd-dev libarchive-dev
-\`\`\`
-
-## Usage
-
-\`\`\`cmake
-include_directories(/path/to/streamlib/include)
-target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
-\`\`\`
-
-## Version
-
-StreamLib v${VERSION}
-Platform: Linux x64
-
-For more information, see the main README.md
-EOF
+        For more information, see the main README.md
+        EOFREADME
 
         tar czf ${PKG_DIR}.tar.gz ${PKG_DIR}/
 
@@ -404,47 +349,30 @@ EOF
         cp README.md LICENSE ${PKG_DIR}/
 
         # Create README for package
-        cat > ${PKG_DIR}/README.md << EOF
-# StreamLib Library v${VERSION} - macOS x64
+        cat > ${PKG_DIR}/README.md << 'EOFREADME'
+        StreamLib Library - macOS x64
+        ==============================
 
-This package contains the StreamLib static library built for macOS x64.
+        CONTENTS
+        --------
+        - include/ - Header files
+        - lib/ - Static library (libstream.a)
+        - examples/ - Example source code
 
-## Contents
+        DEPENDENCIES
+        ------------
+        This library requires: zlib, bzip2, xz, zstd, libarchive
 
-- \`include/\` - Header files
-- \`lib/\` - Static library (libstream.a)
-- \`examples/\` - Example source code
-- \`README.md\` - This file
-- \`LICENSE\` - License information
+        Install with Homebrew:
+          brew install zlib bzip2 xz zstd libarchive
 
-## Dependencies
+        USAGE
+        -----
+        include_directories(/path/to/streamlib/include)
+        target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
 
-This library requires the following Homebrew libraries:
-- zlib
-- bzip2
-- xz
-- zstd
-- libarchive
-
-Install with Homebrew:
-\`\`\`bash
-brew install zlib bzip2 xz zstd libarchive
-\`\`\`
-
-## Usage
-
-\`\`\`cmake
-include_directories(/path/to/streamlib/include)
-target_link_libraries(your_target /path/to/streamlib/lib/libstream.a z bz2 lzma zstd archive)
-\`\`\`
-
-## Version
-
-StreamLib v${VERSION}
-Platform: macOS x64
-
-For more information, see the main README.md
-EOF
+        For more information, see the main README.md
+        EOFREADME
 
         tar czf ${PKG_DIR}.tar.gz ${PKG_DIR}/
 

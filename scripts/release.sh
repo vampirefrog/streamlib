@@ -63,11 +63,15 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# Commit version change
+# Commit version change if needed
 echo
-echo "Committing version change..."
-git add CMakeLists.txt
-git commit -m "Release ${TAG}"
+if git diff --quiet CMakeLists.txt; then
+    echo "Version already set to ${VERSION}, no commit needed."
+else
+    echo "Committing version change..."
+    git add CMakeLists.txt
+    git commit -m "Release ${TAG}"
+fi
 
 # Create tag
 echo
