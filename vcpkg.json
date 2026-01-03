@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "streamlib",
+  "version": "0.1.0",
+  "dependencies": [
+    "zlib",
+    "bzip2",
+    "liblzma",
+    "zstd",
+    "libarchive"
+  ]
+}
